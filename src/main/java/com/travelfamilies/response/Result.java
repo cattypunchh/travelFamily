@@ -23,4 +23,11 @@ public class Result<T> {
     public static <T> Result<T> failed(String message) {
         return new Result<>(CodeMessage.FAILED.getCode(), message, null);
     }
+
+    public static <T> Result<T> failed(int code, String message) {
+
+        return new Result<>(code,message,null);
+    }
+
+
 }

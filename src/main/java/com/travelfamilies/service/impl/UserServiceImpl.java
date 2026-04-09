@@ -3,6 +3,7 @@ package com.travelfamilies.service.impl;
 import com.travelfamilies.config.JwtUtils;
 import com.travelfamilies.exception.BusinessException;
 import com.travelfamilies.mapper.UserMapper;
+import com.travelfamilies.pojo.User;
 import com.travelfamilies.request.userRequest.LoginRequest;
 import com.travelfamilies.request.userRequest.RegisterRequest;
 import com.travelfamilies.request.userRequest.UpdateDetailRequest;
@@ -10,45 +11,79 @@ import com.travelfamilies.request.userRequest.UpdatePasswordRequest;
 import com.travelfamilies.response.Result;
 import com.travelfamilies.response.UserResponse;
 import com.travelfamilies.service.UserService;
-import lombok.RequiredArgsConstructor;
+import com.travelfamilies.tools.RedisConstant;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.validation.Valid;
+import org.springframework.beans.BeanUtils;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
+import java.util.concurrent.TimeUnit;
+
+
+/*
+ * 第二次修改内容
+ * 1.区分了普通用户和管理员
+ * 2.限制了管理员&用户传来数据非空
+ * 3.更新密码同时更新JWT
+ * */
 @Service
-@RequiredArgsConstructor
 public class UserServiceImpl implements UserService {
 
     private final UserMapper userMapper;
     private final PasswordEncoder passwordEncoder;
     private final JwtUtils jwtUtils;
+    private final StringRedisTemplate stringRedisTemplate;
 
-    @Override
-    public void registerUser(RegisterRequest registerRequest) throws BusinessException {
-
-        if (userMapper.getRegisterUser(registerRequest.username()) != null) {
-            throw new BusinessException("该用户名重复");
-        }
-
-        final String password = passwordEncoder.encode(registerRequest.password());
-
-        userMapper.registerUser(registerRequest.username(),
-                registerRequest.nickname(),
-                password,
-                registerRequest.email()
-        );
+    public UserServiceImpl(UserMapper userMapper, PasswordEncoder passwordEncoder, JwtUtils jwtUtils, StringRedisTemplate stringRedisTemplate) {
+        this.userMapper = userMapper;
+        this.passwordEncoder = passwordEncoder;
+        this.jwtUtils = jwtUtils;
+        this.stringRedisTemplate = stringRedisTemplate;
     }
 
     @Override
-    public Result<?> loginUser(LoginRequest loginRequest) {
+    public void registerUser(@Valid RegisterRequest registerRequest) throws BusinessException {
+
+        User user = new User();
+        BeanUtils.copyProperties(registerRequest, user);
+        if (userMapper.getRegisterUser(user.getUsername()) != null) {
+            throw new BusinessException("该用户名重复");
+        }
+
+        user.setPassword(passwordEncoder.encode(user.getPassword()));
+
+        userMapper.registerUser(user);
+    }
+
+    @Override
+    public Result<?> loginUser(@Valid LoginRequest loginRequest) {
 
         final UserResponse registerUser = userMapper.getRegisterUser(loginRequest.username());
 
         if (registerUser == null) {
             return Result.failed("该用户名不存在，请先注册");
         }
+        int userId = registerUser.getId();
+        if (registerUser.getStatus() != 1){
+
+            stringRedisTemplate.opsForValue().set(RedisConstant.USER_BLACK_LIST+userId,registerUser.getUsername()+"被封禁");
+            stringRedisTemplate.delete(RedisConstant.USER_TOKEN+userId);
+            return Result.failed("该账号异常");
+        }
+
+
+        if(registerUser.getRole() !=1){
+
+            return  Result.failed("非用户账号，禁止登录");
+        }
 
         if (passwordEncoder.matches(loginRequest.password(), registerUser.getPassword())) {
-            final String token = jwtUtils.generateToken(registerUser.getId(), registerUser.getUsername());
+            final String token = jwtUtils.generateToken(userId, registerUser.getRole(), registerUser.getUsername());
+
+            stringRedisTemplate.opsForValue().set(RedisConstant.USER_TOKEN + userId, token,
+                                                    RedisConstant.TOKEN_EXPIRES_TIME, TimeUnit.SECONDS);
             return Result.success(token);
         }
 
@@ -56,9 +91,10 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
-    public Result<?> updateUserPassword(UpdatePasswordRequest updatePasswordRequest, int userId) {
+    public Result<?> updateUserPassword(UpdatePasswordRequest updatePasswordRequest, HttpServletRequest httpServletRequest) {
 
-        final String oldPassword = userMapper.getPasswordById(userId);
+        int userId = (int) httpServletRequest.getAttribute("userID");
+        String oldPassword = userMapper.getPasswordById(userId);
 
         if (!passwordEncoder.matches(updatePasswordRequest.oldPassword(), oldPassword)) {
 
@@ -66,11 +102,17 @@ public class UserServiceImpl implements UserService {
         }
 
         final String password = passwordEncoder.encode(updatePasswordRequest.newPassword());
+        if (userMapper.setNewPassword(password, userId) > 0) {
 
-        return userMapper.setNewPassword(password, userId) > 0 ?
-                Result.success() :
-                Result.failed("更新失败，请再次重试");
+            String token = jwtUtils.generateToken(userId, (int) httpServletRequest.getAttribute("roleID"),
+                    (String) httpServletRequest.getAttribute("username"));
+
+            stringRedisTemplate.opsForValue().set(RedisConstant.USER_TOKEN + userId, token, RedisConstant.TOKEN_EXPIRES_TIME, TimeUnit.SECONDS);
+            return Result.success(token);
+        }
+        return Result.failed("更新失败，请再次重试");
     }
+
 
     @Override
     public Result<?> updateUserDetail(UpdateDetailRequest updateDetailRequest, int userId) {

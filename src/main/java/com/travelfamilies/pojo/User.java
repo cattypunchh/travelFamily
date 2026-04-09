@@ -22,4 +22,5 @@ public class User {
     private int status;
     private LocalDateTime create_time;
     private LocalDateTime update_time;
+    private int role=1;
 }

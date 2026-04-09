@@ -7,6 +7,7 @@ import com.travelfamilies.request.userRequest.UpdatePasswordRequest;
 import com.travelfamilies.response.Result;
 import com.travelfamilies.service.UserService;
 import jakarta.servlet.http.HttpServletRequest;
+import jakarta.validation.Valid;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -19,8 +20,10 @@ public class UserController {
         this.userService = userService;
     }
 
+    //TODO    规范路径 restful风格 +  用户&管理员->redis
     @PostMapping("/register")
-    public Result<?> registerUser(@RequestBody RegisterRequest registerRequest) throws Exception {
+    public Result<?> registerUser(@Valid @RequestBody RegisterRequest registerRequest) throws Exception {
+
 
         userService.registerUser(registerRequest);
 
@@ -28,7 +31,7 @@ public class UserController {
     }
 
     @PostMapping("/login")
-    public Result<?> loginUser(@RequestBody LoginRequest loginRequest) {
+    public Result<?> loginUser(@Valid @RequestBody LoginRequest loginRequest) {
 
         return userService.loginUser(loginRequest);
 
@@ -38,17 +41,16 @@ public class UserController {
     public Result<?> updateUserPassword(@RequestBody UpdatePasswordRequest updatePasswordRequest,
                                         HttpServletRequest httpServletRequest) {
 
-        int userId = (int) httpServletRequest.getAttribute("userID");
-
-        return userService.updateUserPassword(updatePasswordRequest, userId);
+        return userService.updateUserPassword(updatePasswordRequest,httpServletRequest);
     }
 
+
     @PutMapping("/updateUser")
-    public Result<?> updateUserPassword(@RequestBody UpdateDetailRequest updateDetailRequest,
+    public Result<?> updateUserDetail(@RequestBody UpdateDetailRequest updateDetailRequest,
                                         HttpServletRequest httpServletRequest) {
 
         int userId = (int) httpServletRequest.getAttribute("userID");
-
         return userService.updateUserDetail(updateDetailRequest, userId);
     }
+
 }
