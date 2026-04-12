@@ -81,7 +81,7 @@ public class AdminServiceImpl implements AdminService {
             String token = jwtUtils.generateToken(userId, registerUser.getRole(), username);
 
             stringRedisTemplate.opsForValue().set(RedisConstant.ADMIN_TOKEN + userId, token,
-                                                    RedisConstant.TOKEN_EXPIRES_TIME, TimeUnit.SECONDS);
+                                                    RedisConstant.TOKEN_EXPIRES_TIME,TimeUnit.MILLISECONDS);
             return Result.success(token);
         }
 
@@ -114,7 +114,8 @@ public class AdminServiceImpl implements AdminService {
 
             String token = jwtUtils.generateToken(userId, (int) httpServletRequest.getAttribute("roleID"),
                                                     (String) httpServletRequest.getAttribute("username"));
-            stringRedisTemplate.opsForValue().set(RedisConstant.ADMIN_TOKEN+userId,token,RedisConstant.TOKEN_EXPIRES_TIME, TimeUnit.SECONDS);
+            stringRedisTemplate.opsForValue().set(RedisConstant.ADMIN_TOKEN+userId,token,
+                                                    RedisConstant.TOKEN_EXPIRES_TIME, TimeUnit.MILLISECONDS);
 
             return Result.success(token);
         }

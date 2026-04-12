@@ -20,7 +20,6 @@ public class UserController {
         this.userService = userService;
     }
 
-    //TODO    规范路径 restful风格 +  用户&管理员->redis
     @PostMapping("/register")
     public Result<?> registerUser(@Valid @RequestBody RegisterRequest registerRequest) throws Exception {
 

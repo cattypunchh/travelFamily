@@ -8,8 +8,8 @@ public enum CodeMessage {
     ACCESS_FAILED(403,"权限不足");
 
 
-    private int code;
-    private String message;
+    private final int code;
+    private final String message;
 
     CodeMessage(int code, String message) {
         this.code = code;

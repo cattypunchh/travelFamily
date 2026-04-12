@@ -43,8 +43,8 @@ public class SecurityConfig {
 
                 // 3. 配置请求拦截规则
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/user/login", "/user/register","/admin/register","/admin/login").permitAll()
-                        .requestMatchers("/admin/**").hasRole("ADMIN")
+                        .requestMatchers("/user/login", "/user/register","/admin/register","/admin/login","/error").permitAll()
+                        .requestMatchers("/admin/**","/spot/addSpot","/spot/update","/spot/delete").hasRole("ADMIN")
                         .anyRequest().authenticated()
                 )
                 .exceptionHandling(exception -> exception

@@ -30,4 +30,11 @@ public class GlobalExceptionHandler {
                 .collect(Collectors.joining(", "));
         return Result.failed(messages);
     }
+
+    @ExceptionHandler(Exception.class)
+    public Result<?> exceptionHandler(Exception exception) {
+
+        return Result.failed(500,"服务器内部错误",exception.getMessage());
+    }
+
 }

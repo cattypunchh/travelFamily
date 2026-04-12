@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+
+<mapper namespace="com.travelfamilies.mapper.SpotMapper">
+
+    <select id="getSpot" resultType="com.travelfamilies.response.SpotResponse">
+        select
+        id,name,city,type,open_time,views
+        from spot
+        <where>
+            <choose>
+                <when test="key != null and value != null">
+                    AND ${key} = #{value}
+                </when>
+
+                <otherwise>
+                    <if test="keyword != null and keyword != ''">
+                        AND (
+                        CONCAT(name, city, type) LIKE CONCAT('%', #{keyword}, '%')
+                        )
+                    </if>
+                </otherwise>
+            </choose>
+
+            AND status = 1
+
+        <choose>
+
+        </choose>
+        </where>
+
+    </select>
+</mapper>

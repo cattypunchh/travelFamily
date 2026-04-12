@@ -22,12 +22,6 @@ import org.springframework.stereotype.Service;
 import java.util.concurrent.TimeUnit;
 
 
-/*
- * 第二次修改内容
- * 1.区分了普通用户和管理员
- * 2.限制了管理员&用户传来数据非空
- * 3.更新密码同时更新JWT
- * */
 @Service
 public class UserServiceImpl implements UserService {
 
@@ -83,7 +77,7 @@ public class UserServiceImpl implements UserService {
             final String token = jwtUtils.generateToken(userId, registerUser.getRole(), registerUser.getUsername());
 
             stringRedisTemplate.opsForValue().set(RedisConstant.USER_TOKEN + userId, token,
-                                                    RedisConstant.TOKEN_EXPIRES_TIME, TimeUnit.SECONDS);
+                                                    RedisConstant.TOKEN_EXPIRES_TIME, TimeUnit.MILLISECONDS);
             return Result.success(token);
         }
 
@@ -107,7 +101,8 @@ public class UserServiceImpl implements UserService {
             String token = jwtUtils.generateToken(userId, (int) httpServletRequest.getAttribute("roleID"),
                     (String) httpServletRequest.getAttribute("username"));
 
-            stringRedisTemplate.opsForValue().set(RedisConstant.USER_TOKEN + userId, token, RedisConstant.TOKEN_EXPIRES_TIME, TimeUnit.SECONDS);
+            stringRedisTemplate.opsForValue().set(RedisConstant.USER_TOKEN + userId, token,
+                                                    RedisConstant.TOKEN_EXPIRES_TIME, TimeUnit.MILLISECONDS);
             return Result.success(token);
         }
         return Result.failed("更新失败，请再次重试");

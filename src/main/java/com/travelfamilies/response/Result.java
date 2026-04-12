@@ -29,5 +29,12 @@ public class Result<T> {
         return new Result<>(code,message,null);
     }
 
+    /*
+    * 服务器内部错误*/
+    public static <T> Result<T> failed(int code, String message, T data) {
+
+        return new Result<>(code,message,data);
+    }
+
 
 }

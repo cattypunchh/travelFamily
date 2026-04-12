@@ -15,15 +15,11 @@ import org.springframework.web.bind.annotation.*;
 @RestController
 @RequestMapping("/admin")
 @RequiredArgsConstructor
-
-
-//TODO  其他业务模块
 public class AdminController {
 
 
     private final AdminService adminService;
 
-   // @PreAuthorize("hasRole('ROLE_ADMIN')")
     @PostMapping("/register")
     public Result<?> register(@Valid @RequestBody RegisterRequest registerRequest) throws BusinessException {
 
