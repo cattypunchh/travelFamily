@@ -30,6 +30,7 @@
         <java.version>17</java.version>
         <mybatis.version>4.0.1</mybatis.version>
         <jwt.version>4.4.0</jwt.version>
+        <pageHelper.version>1.4.7</pageHelper.version>
     </properties>
     <dependencies>
 
@@ -80,6 +81,11 @@
             <artifactId>spring-boot-starter-data-redis</artifactId>
         </dependency>
 
+        <dependency>
+            <groupId>com.github.pagehelper</groupId>
+            <artifactId>pagehelper-spring-boot-starter</artifactId>
+            <version>${pageHelper.version}</version>
+        </dependency>
     </dependencies>
 
     <build>

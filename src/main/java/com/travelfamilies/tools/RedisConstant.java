@@ -18,6 +18,12 @@ public final class RedisConstant {
     public static final String SPOT_VIEWS="spot:views:";
     /*防止某个用户恶意刷某景点浏览量*/
     public static final String SPOT_VIEWS_USER="spot:views:user:";
+    /**/
+    public static final String COMMENT_SPOT_SCORE="comment:spot:score:";
+    public static final String COMMENT_SPOT_COUNT="comment:spot:count:";
+
+    public static final String COMMENT_HOTEL_SCORER="comment:hotel:score:";
+    public static final String COMMENT_HOTEL_COUNT="comment:hotel:count:";
 
 
     public static final Long SPOT_VIEWS_USER_EXPIRES=30*60*1000L;

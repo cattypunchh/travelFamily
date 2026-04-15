@@ -7,6 +7,7 @@ import com.travelfamilies.response.SpotResponse;
 import org.apache.ibatis.annotations.*;
 
 import java.util.List;
+import java.util.Map;
 
 @Mapper
 public interface SpotMapper {
@@ -14,15 +15,14 @@ public interface SpotMapper {
     @Select("select id,name,city,type,open_time,views from spot where status=1 order by views desc LIMIT 10")
     List<SpotResponse> getHotSpot();
 
-
     List<SpotResponse> getSpot(QuerySpotRequest querySpotRequest);
-
 
     @Select("select * from spot where id=#{id}")
     Spot getSpotDetail(int id);
 
     @Insert("insert into spot (name,city,type,address,price,open_time,description,image_urls,status,views) " +
             "values (#{name},#{city},#{type},#{address},#{price},#{open_time},#{description},#{image_urls},#{status},#{views})")
+    @Options(useGeneratedKeys = true, keyProperty = "id")
     int addSpot(Spot spot);
 
     @Update("update spot set price=#{price},open_time=#{open_time},description=#{description},image_urls=#{image_urls} where id=#{id}")
@@ -33,4 +33,11 @@ public interface SpotMapper {
 
     @Update("update spot set views=#{views} where id=#{spotId}")
     void updateViews(int spotId, int views);
+
+    @Select("select id from spot where name=#{name}")
+    Integer getSpotId(String name);
+
+    int updateCount(@Param("list") List<Map<String , Object>> updateList);
+
+    int updateStarRating(@Param("list") List<Map<String, Object>> updateList);
 }

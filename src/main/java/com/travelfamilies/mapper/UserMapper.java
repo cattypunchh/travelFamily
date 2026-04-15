@@ -2,11 +2,11 @@ package com.travelfamilies.mapper;
 
 import com.travelfamilies.pojo.User;
 import com.travelfamilies.request.userRequest.UpdateDetailRequest;
+import com.travelfamilies.response.GetUserResponse;
 import com.travelfamilies.response.UserResponse;
-import org.apache.ibatis.annotations.Insert;
-import org.apache.ibatis.annotations.Mapper;
-import org.apache.ibatis.annotations.Select;
-import org.apache.ibatis.annotations.Update;
+import org.apache.ibatis.annotations.*;
+
+import java.util.List;
 
 @Mapper
 public interface UserMapper {
@@ -29,4 +29,6 @@ public interface UserMapper {
 
     @Update("update user_detail set status=0 where username=#{username}")
     int updateStatus(String username);
+
+    List<GetUserResponse> getUser(@Param("ids") List<Integer> userIds);
 }

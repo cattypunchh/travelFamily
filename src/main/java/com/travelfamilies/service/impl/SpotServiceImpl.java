@@ -14,6 +14,7 @@ import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
+
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
@@ -29,7 +30,7 @@ public class SpotServiceImpl implements SpotService {
 
 
     @Override
-    @Cacheable(value = RedisConstant.SPOT_TOP10_LIST, key = "'top10'",sync = true)
+    @Cacheable(value = RedisConstant.SPOT_TOP10_LIST, key = "'top10'", sync = true)
     public Result<?> getHotSpot() {
 
         List<SpotResponse> spotResponse = spotMapper.getHotSpot();
@@ -59,16 +60,14 @@ public class SpotServiceImpl implements SpotService {
         int userId = (int) httpServletRequest.getAttribute("userID");
 
         /*防止某用户恶意刷浏览量*/
-        Boolean result = stringRedisTemplate.opsForValue().setIfAbsent(RedisConstant.SPOT_VIEWS_USER + userId+":"+id,
-                LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"))+ "起该用户在一个小时内已访问过该景点信息，文章id为：" + id,
+        Boolean result = stringRedisTemplate.opsForValue().setIfAbsent(RedisConstant.SPOT_VIEWS_USER + userId + ":" + id,
+                LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")) + "起该用户在一个小时内已访问过该景点信息，文章id为：" + id,
                 RedisConstant.SPOT_VIEWS_USER_EXPIRES, TimeUnit.MILLISECONDS);
 
         if (Boolean.TRUE.equals(result)) {
 
             stringRedisTemplate.opsForValue().increment(RedisConstant.SPOT_VIEWS + id);
         }
-
-        //TODO  定时回写数据库覆盖原本的浏览量
         Spot spot = spotMapper.getSpotDetail(id);
         spot.setViews(Integer.valueOf(Objects.requireNonNull(stringRedisTemplate.opsForValue().get(RedisConstant.SPOT_VIEWS + id))));
         return Result.success(spot);
@@ -78,11 +77,14 @@ public class SpotServiceImpl implements SpotService {
     @CacheEvict(value = RedisConstant.SPOT_TOP10_LIST, key = "'top10'")
     public Result<?> addSpot(Spot spot) {
 
+        if(spotMapper.getSpotId(spot.getName())==null)
+            return Result.failed("该景点已添加过，或者请检查景点名字是否重复");
         int result = spotMapper.addSpot(spot);
 
         if (result > 0) {
 
             stringRedisTemplate.opsForSet().add(RedisConstant.SPOT_TYPE_DETAIL, spot.getType());
+            stringRedisTemplate.opsForValue().set(RedisConstant.COMMENT_SPOT_SCORE+spot.getId(), "0.0");
             return Result.success();
         }
 
@@ -104,8 +106,8 @@ public class SpotServiceImpl implements SpotService {
     @CacheEvict(value = RedisConstant.SPOT_TOP10_LIST, key = "'top10'")
     public Result<?> deleteSpot(int id) {
 
-        return spotMapper.deleteSpot(id)==1?
-                Result.success():
+        return spotMapper.deleteSpot(id) == 1 ?
+                Result.success() :
                 Result.failed("删除失败");
 
     }
