@@ -113,14 +113,14 @@ public class CommentServiceImpl implements CommentService {
 //
         Map<Integer,List<String>> imagesGroup=new HashMap<>();
 
-        for(CommentImage commentImage:images){
+        for(CommentImage image:images){
 
-            int comment_id=commentImage.getComment_id();
+            int comment_id=image.getComment_id();
             if(!imagesGroup.containsKey(comment_id)){
 
                 imagesGroup.put(comment_id,new ArrayList<>());
             }
-            imagesGroup.get(comment_id).add(commentImage.getImage_url());
+            imagesGroup.get(comment_id).add(image.getImage_url());
         }
         List<CommentVO> repliedComments = commentVOList.stream()
                 .filter(f -> f.getRoot_id() != 0)
