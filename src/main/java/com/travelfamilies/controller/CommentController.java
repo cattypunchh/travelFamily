@@ -20,7 +20,7 @@ public class CommentController {
     @PostMapping("/add")
     public Result<?> addComment(@RequestBody AddCommentRequest addCommentRequest, HttpServletRequest httpServletRequest) {
 
-        int userId = (int) httpServletRequest.getAttribute("userID");
+        long userId = (long) httpServletRequest.getAttribute("userID");
         return commentService.addComment(userId, addCommentRequest);
     }
 

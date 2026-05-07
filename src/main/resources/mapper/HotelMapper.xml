@@ -1,0 +1,146 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.travelfamilies.mapper.HotelMapper">
+    <insert id="addStock">
+        INSERT INTO hotel_room_stock (
+        room_type_id,
+        hotel_id,
+        sale_date,
+        price,
+        stock
+        ) VALUES
+        <foreach collection="thirtyDays" item="day" separator=",">
+            (
+            #{roomTypeId},
+            #{hotelId},
+            #{day},
+            #{price},
+            #{totalInventory}
+            )
+        </foreach>
+    </insert>
+
+    <insert id="addStockByDay">
+        INSERT INTO hotel_room_stock (
+        room_type_id,
+        hotel_id,
+        sale_date,
+        stock,
+        price
+        ) VALUES
+        <foreach collection="rooms" item="room" separator=",">
+            (
+            #{room.id},
+            #{room.hotelId},
+            #{time},
+            #{room.totalInventory},
+            #{room.defaultPrice}
+            )
+        </foreach>
+        ON DUPLICATE KEY UPDATE room_type_id = room_type_id
+    </insert>
+
+    <delete id="deleteStockByDay">
+        DELETE FROM hotel_room_stock
+        WHERE sale_date &lt; #{time}
+        AND room_type_id IN
+        <foreach collection="rooms" item="room" open="(" separator="," close=")">
+            #{room.id}
+        </foreach>
+    </delete>
+
+    <select id="getDayMess" resultType="com.travelfamilies.response.GetRoomDayMess">
+        SELECT room_type_id, stock, price
+        FROM hotel_room_stock
+        WHERE sale_date = #{today}
+        AND room_type_id IN
+        <foreach collection="roomIds" item="id" open="(" separator="," close=")">
+            #{id}
+        </foreach>
+    </select>
+
+    <select id="searchHotel" resultType="com.travelfamilies.response.GetHotelResponse">
+        SELECT
+        id, name, city, district, business_area, base_price, main_pic
+        FROM hotel
+        <where>
+            <choose>
+                <when test="key != null and key != '' and value != null">
+                    AND ${key} = #{value}
+                </when>
+
+                <otherwise>
+                    <if test="keyword != null and keyword != ''">
+                        AND (
+                        CONCAT(IFNULL(city,''), IFNULL(district,''), IFNULL(business_area,''), IFNULL(name,''))
+                        LIKE CONCAT('%', #{keyword}, '%')
+                        )
+                    </if>
+                </otherwise>
+            </choose>
+
+            AND status = 1
+        </where>
+    </select>
+
+
+    <select id="searchHotelByCityAndTime" resultType="com.travelfamilies.response.GetHotelResponse">
+        SELECT
+        h.id, h.name, h.city, h.district, h.business_area, h.base_price, h.main_pic
+        FROM hotel h
+        <where>
+            h.status = 1
+
+            <if test="reserveRoomRequest.city != null and reserveRoomRequest.city != ''">
+                AND h.city = #{reserveRoomRequest.city}
+            </if>
+
+            AND EXISTS (
+            SELECT 1
+            FROM hotel_room_type rt
+            WHERE rt.hotel_id = h.id
+            AND rt.status = 1
+            AND NOT EXISTS (
+            SELECT 1
+            FROM hotel_room_stock rs
+            WHERE rs.room_type_id = rt.id
+            AND rs.sale_date BETWEEN #{reserveRoomRequest.startTime} AND #{endDay}
+            AND rs.stock &lt;= 0
+            )
+            )
+        </where>
+    </select>
+
+
+    <select id="getRooms" resultType="com.travelfamilies.pojo.Room">
+            SELECT
+            id,
+            hotel_id,
+            room_name,
+            bed_type,
+            `window`,
+            area,
+            default_price,
+            total_inventory,
+            status
+            FROM hotel_room_type rt
+            <where>
+                rt.hotel_id = #{getRoomRequest.hotelId}
+
+                AND rt.status = 1
+
+                AND NOT EXISTS (
+                SELECT 1
+                FROM hotel_room_stock rs
+                WHERE rs.room_type_id = rt.id
+                AND rs.sale_date BETWEEN #{getRoomRequest.startTime} AND #{localDay}
+                AND rs.stock &lt;= 0
+                )
+            </where>
+    </select>
+
+
+
+</mapper>

@@ -5,7 +5,7 @@ import lombok.Data;
 @Data
 public class GetUserResponse {
 
-    int id;
+    Long id;
     String nickname;
     String avatar;
 }

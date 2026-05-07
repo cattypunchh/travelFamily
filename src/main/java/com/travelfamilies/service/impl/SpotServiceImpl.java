@@ -1,8 +1,12 @@
 package com.travelfamilies.service.impl;
 
+import com.travelfamilies.mapper.ImagesMapper;
 import com.travelfamilies.mapper.SpotMapper;
+import com.travelfamilies.pojo.Image;
 import com.travelfamilies.pojo.Spot;
+import com.travelfamilies.pojo.SpotVO;
 import com.travelfamilies.request.spotRequest.QuerySpotRequest;
+import com.travelfamilies.request.spotRequest.SpotRequest;
 import com.travelfamilies.request.spotRequest.UpdateDetailRequest;
 import com.travelfamilies.response.Result;
 import com.travelfamilies.response.SpotResponse;
@@ -10,6 +14,7 @@ import com.travelfamilies.service.SpotService;
 import com.travelfamilies.tools.RedisConstant;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.BeanUtils;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.redis.core.StringRedisTemplate;
@@ -17,6 +22,7 @@ import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.TimeUnit;
@@ -27,7 +33,7 @@ public class SpotServiceImpl implements SpotService {
 
     private final SpotMapper spotMapper;
     private final StringRedisTemplate stringRedisTemplate;
-
+    private final ImagesMapper imagesMapper;
 
     @Override
     @Cacheable(value = RedisConstant.SPOT_TOP10_LIST, key = "'top10'", sync = true)
@@ -55,9 +61,9 @@ public class SpotServiceImpl implements SpotService {
     }
 
     @Override
-    public Result<?> getSpotDetail(int id, HttpServletRequest httpServletRequest) {
+    public Result<?> getSpotDetail(Long id, HttpServletRequest httpServletRequest) {
 
-        int userId = (int) httpServletRequest.getAttribute("userID");
+        long userId = (long) httpServletRequest.getAttribute("userID");
 
         /*防止某用户恶意刷浏览量*/
         Boolean result = stringRedisTemplate.opsForValue().setIfAbsent(RedisConstant.SPOT_VIEWS_USER + userId + ":" + id,
@@ -68,23 +74,39 @@ public class SpotServiceImpl implements SpotService {
 
             stringRedisTemplate.opsForValue().increment(RedisConstant.SPOT_VIEWS + id);
         }
+        List<Long> spotId = new ArrayList<>();
+        spotId.add(id);
         Spot spot = spotMapper.getSpotDetail(id);
+        SpotVO spotVO = new SpotVO();
+        BeanUtils.copyProperties(spot, spotVO);
+        List<Image> images = imagesMapper.getImages(spotId, 3);
         spot.setViews(Integer.valueOf(Objects.requireNonNull(stringRedisTemplate.opsForValue().get(RedisConstant.SPOT_VIEWS + id))));
-        return Result.success(spot);
+        spotVO.setImageUrls(images);
+        return Result.success(spotVO);
     }
 
     @Override
     @CacheEvict(value = RedisConstant.SPOT_TOP10_LIST, key = "'top10'")
-    public Result<?> addSpot(Spot spot) {
+    public Result<?> addSpot(SpotRequest spotRequest) {
 
-        if(spotMapper.getSpotId(spot.getName())==null)
+
+        if (spotMapper.getSpotId(spotRequest.getName()) !=null)
             return Result.failed("该景点已添加过，或者请检查景点名字是否重复");
+        Spot spot = new Spot();
+        BeanUtils.copyProperties(spotRequest, spot);
+
+        List<String> images = spotRequest.getImageUrls();
+        spot.setImageUrls(images.get(0));
+        long id = cn.hutool.core.util.IdUtil.getSnowflakeNextId();
+        spot.setId(id);
         int result = spotMapper.addSpot(spot);
+
+        imagesMapper.addImages(spot.getId(), 3, spotRequest.getImageUrls());
 
         if (result > 0) {
 
             stringRedisTemplate.opsForSet().add(RedisConstant.SPOT_TYPE_DETAIL, spot.getType());
-            stringRedisTemplate.opsForValue().set(RedisConstant.COMMENT_SPOT_SCORE+spot.getId(), "0.0");
+            stringRedisTemplate.opsForValue().set(RedisConstant.COMMENT_SPOT_SCORE + spot.getId(), "0.0");
             return Result.success();
         }
 
@@ -94,9 +116,9 @@ public class SpotServiceImpl implements SpotService {
 
     @Override
     @CacheEvict(value = RedisConstant.SPOT_TOP10_LIST, key = "'top10'")
-    public Result<?> updateSpot(UpdateDetailRequest updateDetailRequest) {
+    public Result<?> updateSpot(UpdateDetailRequest updateDetailRequest,long id) {
 
-        return spotMapper.updateSpot(updateDetailRequest) == 1 ?
+        return spotMapper.updateSpot(updateDetailRequest,id) == 1 ?
                 Result.success() :
                 Result.failed("更新失败");
 
@@ -104,7 +126,7 @@ public class SpotServiceImpl implements SpotService {
 
     @Override
     @CacheEvict(value = RedisConstant.SPOT_TOP10_LIST, key = "'top10'")
-    public Result<?> deleteSpot(int id) {
+    public Result<?> deleteSpot(Long id) {
 
         return spotMapper.deleteSpot(id) == 1 ?
                 Result.success() :

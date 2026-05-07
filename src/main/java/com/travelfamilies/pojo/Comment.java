@@ -13,15 +13,15 @@ import java.util.List;
 public class Comment {
 
     private int id;
-    private int user_id;
-    private int target_id;
-    private int target_type;
+    private Long userId;
+    private Long targetId;
+    private int targetType;
     private String content;
-    private Integer star_rating;
-    private Integer parent_id;
-    private Integer root_id;
+    private Integer starRating;
+    private Integer parentId;
+    private Integer rootId;
     private int status;
     List<String> images;
-    private LocalDateTime create_time;
+    private LocalDateTime createTime;
 
 }

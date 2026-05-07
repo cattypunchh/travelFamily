@@ -12,7 +12,7 @@ public class JwtUtils {
 
    private static final String  SECRET="your_secret_key_123456";
 
-   public String generateToken(int userId,int roleId,String username) {
+   public String generateToken(Long userId,int roleId,String username) {
 
       return JWT.create()
               .withClaim("userID",userId)
@@ -25,14 +25,5 @@ public class JwtUtils {
    public static DecodedJWT verifyToken(String token) {
 
       return JWT.require(Algorithm.HMAC256(SECRET)).build().verify(token);
-   }
-
-   public int getUserId(String token) {
-
-      return verifyToken(token).getClaim("userID").asInt();
-   }
-
-   public int getUsername(String token) {
-      return verifyToken(token).getClaim("roleID").asInt();
    }
 }

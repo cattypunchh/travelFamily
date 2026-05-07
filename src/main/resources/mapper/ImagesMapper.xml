@@ -4,13 +4,34 @@
 
 <mapper namespace="com.travelfamilies.mapper.ImagesMapper">
 
-    <select id="getImages" resultType="com.travelfamilies.pojo.CommentImage">
-        SELECT comment_id, image_url
-        FROM comment_image
-        WHERE comment_id IN
-        <foreach collection="commentIds" item="id" open="(" separator="," close=")">
-            #{id}
-        </foreach>
+    <select id="getImages" resultType="com.travelfamilies.pojo.Image">
+        SELECT target_id, image_url
+        FROM image
+        WHERE target_type=#{type}
+        <if test="commentIds != null and commentIds.size() > 0">
+            AND target_id IN
+            <foreach collection="commentIds" item="id" open="(" separator="," close=")">
+                #{id}
+            </foreach>
+        </if>
         ORDER BY sort_order ASC
     </select>
+
+    <insert id="addImages">
+        INSERT INTO `image` (
+        `target_id`,
+        `target_type`,
+        `image_url`,
+        `sort_order`,
+        `create_time`
+        ) VALUES
+        <foreach collection="images" item="url" separator="," index="index">
+            (
+            #{targetId},
+            #{targetType},
+            #{url},
+            #{index}, NOW()
+            )
+        </foreach>
+    </insert>
 </mapper>

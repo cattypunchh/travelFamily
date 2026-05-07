@@ -2,5 +2,9 @@ package com.travelfamilies.request.spotRequest;
 
 import java.math.BigDecimal;
 
-public record UpdateDetailRequest(int id, BigDecimal price, String open_time, String description, String image_urls) {
+public record UpdateDetailRequest(
+        BigDecimal price,
+        String openTime,
+        String description,
+        String imageUrls) {
 }

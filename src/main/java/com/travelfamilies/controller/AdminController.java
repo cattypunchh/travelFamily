@@ -20,7 +20,7 @@ public class AdminController {
 
     private final AdminService adminService;
 
-    @PostMapping("/register")
+    @PostMapping
     public Result<?> register(@Valid @RequestBody RegisterRequest registerRequest) throws BusinessException {
 
         adminService.registerAdmin(registerRequest);
@@ -34,17 +34,24 @@ public class AdminController {
         return adminService.loginAdmin(loginRequest);
     }
 
-    //@PreAuthorize("hasRole('ADMIN')")
-    @PostMapping("/updateStatus")
-    public Result<?> updateStatus(@RequestParam  String username, HttpServletRequest httpServletRequest){
+    @PutMapping("/status")
+    public Result<?> updateStatus(@RequestParam  String username){
 
         //接口响应慢
         return adminService.updateStatus(username);
     }
 
-    @PostMapping("/updatePassword")
-    public Result<?> updatePassword(@Valid @RequestBody UpdatePasswordRequest updatePasswordRequest,HttpServletRequest httpServletRequest){
+    @PutMapping("/{id}/password")
+    public Result<?> updatePassword( @PathVariable Long id,
+                                     @Valid @RequestBody UpdatePasswordRequest updatePasswordRequest,
+                                     HttpServletRequest httpServletRequest){
 
-        return adminService.updatePassword(updatePasswordRequest,httpServletRequest);
+        Long userId = (Long) httpServletRequest.getAttribute("userID");
+
+        if(!id.equals(userId)){
+
+            return  Result.failed("账号异常，请重试或者联系管理员");
+        }
+        return adminService.updatePassword(updatePasswordRequest,id);
     }
 }

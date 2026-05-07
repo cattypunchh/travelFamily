@@ -9,11 +9,13 @@ import java.time.LocalDateTime;
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
-public class CommentImage {
+public class Image {
 
     private int id;
-    private int comment_id;
-    private String image_url;
-    private int sort_order;
-    private LocalDateTime create_time;
+    private long targetId;
+    private int targetType;
+    private String imageUrl;
+    private int isMain;
+    private int sortOrder;
+    private LocalDateTime createTime;
 }

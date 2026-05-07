@@ -12,7 +12,7 @@ import java.time.LocalDateTime;
 @NoArgsConstructor
 public class Spot {
 
-    private Integer id;
+    private Long id;
 
     private String name;
 
@@ -24,17 +24,17 @@ public class Spot {
 
     private BigDecimal price;
 
-    private String open_time;
+    private String openTime;
 
     private String description;
 
-    private String image_urls;
+    private String imageUrls;
 
     private Integer status;
 
     private Integer views;
 
-    private LocalDateTime create_time;
+    private LocalDateTime createTime;
 
-    private LocalDateTime update_time;
+    private LocalDateTime updateTime;
 }

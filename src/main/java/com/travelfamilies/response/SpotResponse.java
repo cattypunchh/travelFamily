@@ -9,10 +9,10 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 public class SpotResponse {
 
-    private int id;
+    private Long id;
     private String name;
     private String city;
     private String type;
-    private String open_time;
+    private String openTime;
     private int views;
 }

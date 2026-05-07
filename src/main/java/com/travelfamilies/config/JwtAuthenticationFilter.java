@@ -43,16 +43,28 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         try {
 
             DecodedJWT decodedJWT = JwtUtils.verifyToken(token);
-            int userId = decodedJWT.getClaim("userID").asInt();
+            long userId = decodedJWT.getClaim("userID").asLong();
             int roleId = decodedJWT.getClaim("roleID").asInt();
 
-            String redisToken = roleId == 1 ? stringRedisTemplate.opsForValue().get(RedisConstant.USER_TOKEN + userId)
-                    : stringRedisTemplate.opsForValue().get(RedisConstant.ADMIN_TOKEN + userId);
+            String roleName;
+            String  key;
+            String blackKey;
+            if(roleId==1){
+                key=RedisConstant.USER_TOKEN + userId;
+                blackKey=RedisConstant.USER_BLACK_LIST;
+                roleName="ROLE_USER";
+            }else if(roleId==2){
+                key=RedisConstant.ADMIN_TOKEN + userId;
+                blackKey=RedisConstant.ADMIN_BLACK_LIST;
+                roleName="ROLE_ADMIN";
+            }else{
+                key=RedisConstant.HOTEL_ADMIN_TOKEN + userId;
+                blackKey=RedisConstant.HOTEL_ADMIN_BLACK_LIST;
+                roleName="ROLE_HOTEL";
+            }
+            String redisToken = stringRedisTemplate.opsForValue().get(key);
 
-
-
-            Boolean blackStatus=roleId==1? stringRedisTemplate.hasKey(RedisConstant.USER_BLACK_LIST)
-                                :stringRedisTemplate.hasKey(RedisConstant.ADMIN_BLACK_LIST);
+            Boolean blackStatus=stringRedisTemplate.hasKey(blackKey);
             if(blackStatus){
                 String message= "该账号异常,禁止登录";
                 HandleResponse.createResponse(403,message,response);
@@ -76,7 +88,6 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             request.setAttribute("roleID", roleId);
             request.setAttribute("username", username);
 
-            String roleName = (roleId == 1) ? "ROLE_USER" : "ROLE_ADMIN";
             // 构造权限列表
             List<SimpleGrantedAuthority> authorities = Collections.singletonList(new SimpleGrantedAuthority(roleName));
 

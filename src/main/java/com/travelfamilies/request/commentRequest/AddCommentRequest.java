@@ -16,12 +16,12 @@ public class AddCommentRequest{
     * 根据前端点击哪个按钮来确定的*/
     Integer id;
     int commentId;
-    int target_id;
-    int target_type;
+    long targetId;
+    int targetType;
     String content;
-    Integer star_rating;
-    Integer parent_id;
-    Integer root_id;
+    Integer starRating;
+    Integer parentId;
+    Integer rootId;
     List<String> images;
 
 

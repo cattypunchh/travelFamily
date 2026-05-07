@@ -11,7 +11,7 @@ import java.time.LocalDateTime;
 @NoArgsConstructor
 public class User {
 
-    private int id;
+    private Long id;
     private String username;
     private String password;
     private String phone;
@@ -20,7 +20,7 @@ public class User {
     private String nickname;
     private int gender;
     private int status;
-    private LocalDateTime create_time;
-    private LocalDateTime update_time;
-    private int role=1;
+    private LocalDateTime createTime;
+    private LocalDateTime updateTime;
+    private Integer role=1;
 }

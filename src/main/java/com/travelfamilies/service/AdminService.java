@@ -15,5 +15,5 @@ public interface AdminService {
 
     Result<?> updateStatus(String username);
 
-    Result<?> updatePassword(@Valid UpdatePasswordRequest updatePasswordRequest, HttpServletRequest httpServletRequest);
+    Result<?> updatePassword(@Valid UpdatePasswordRequest updatePasswordRequest,Long id);
 }

@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+
+<mapper namespace="com.travelfamilies.mapper.CouponMapper">
+
+    <select id="getCouponByUser" resultType="com.travelfamilies.pojo.UserCouponVO">
+        SELECT
+            MIN(uc.id) as id,             c.coupon_id as couponId,      c.title,
+            c.scope_type as scopeType,
+            c.threshold,
+            c.discount_amount as discountAmount,
+            c.end_time as endTime,
+            COUNT(uc.id) as userNum       FROM user_coupons uc
+                                                   INNER JOIN coupons c ON uc.coupon_id = c.coupon_id
+        WHERE uc.user_id = #{userId}
+          AND uc.status = 0
+          AND c.status = 1
+          AND #{totalPrice} > c.threshold
+          AND c.end_time > #{now}
+          AND (
+            c.scope_type = 1            OR
+            (c.scope_type = 2 AND c.scope_id = #{hotelId}) )
+        GROUP BY
+            c.coupon_id, c.title, c.scope_type, c.threshold, c.discount_amount, c.end_time
+    </select>
+
+</mapper>

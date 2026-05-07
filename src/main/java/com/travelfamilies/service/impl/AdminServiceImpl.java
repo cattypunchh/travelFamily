@@ -12,6 +12,7 @@ import com.travelfamilies.response.UserResponse;
 import com.travelfamilies.service.AdminService;
 import com.travelfamilies.tools.RedisConstant;
 import jakarta.servlet.http.HttpServletRequest;
+import lombok.RequiredArgsConstructor;
 import org.springframework.beans.BeanUtils;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -20,6 +21,7 @@ import org.springframework.stereotype.Service;
 import java.util.concurrent.TimeUnit;
 
 @Service
+@RequiredArgsConstructor
 public class AdminServiceImpl implements AdminService {
 
     private final UserMapper userMapper;
@@ -27,19 +29,12 @@ public class AdminServiceImpl implements AdminService {
     private final JwtUtils jwtUtils;
     private final StringRedisTemplate stringRedisTemplate;
 
-    public AdminServiceImpl(UserMapper userMapper, PasswordEncoder passwordEncoder, JwtUtils jwtUtils, StringRedisTemplate stringRedisTemplate) {
-        this.userMapper = userMapper;
-        this.passwordEncoder = passwordEncoder;
-        this.jwtUtils = jwtUtils;
-        this.stringRedisTemplate = stringRedisTemplate;
-    }
-
     @Override
     public void registerAdmin(RegisterRequest registerRequest) throws BusinessException {
 
         User user = new User();
         BeanUtils.copyProperties(registerRequest, user);
-        user.setRole(2);
+        user.setRole(registerRequest.role());
         user.setPassword(passwordEncoder.encode(user.getPassword()));
 
 
@@ -48,7 +43,9 @@ public class AdminServiceImpl implements AdminService {
             throw new BusinessException("该用户名已被注册，请更换");
         }
 
-        userMapper.registerUser(user);
+        long id = cn.hutool.core.util.IdUtil.getSnowflakeNextId();
+        userMapper.registerUser(user,id);
+
     }
 
     @Override
@@ -63,7 +60,7 @@ public class AdminServiceImpl implements AdminService {
             return Result.failed("用户名错误");
         }
 
-        int userId = registerUser.getId();
+        Long userId = registerUser.getId();
         if (registerUser.getStatus() != 1){
 
             stringRedisTemplate.opsForValue().set(RedisConstant.ADMIN_BLACK_LIST+userId,registerUser.getUsername()+"被封禁");
@@ -72,17 +69,19 @@ public class AdminServiceImpl implements AdminService {
         }
 
 
-        if(registerUser.getRole() !=2){
+        int role = registerUser.getRole();
+        if(role ==1){
 
-            return  Result.failed("非管理员账号，禁止登录");
+            return  Result.failed("此账户为用户账号，禁止登录");
         }
         if (passwordEncoder.matches(loginRequest.password(), registerUser.getPassword())) {
 
-            String token = jwtUtils.generateToken(userId, registerUser.getRole(), username);
+            String token = jwtUtils.generateToken(userId, role, username);
 
-            stringRedisTemplate.opsForValue().set(RedisConstant.ADMIN_TOKEN + userId, token,
+            String key = role==2? RedisConstant.ADMIN_TOKEN+userId:RedisConstant.HOTEL_ADMIN_TOKEN+userId;
+            stringRedisTemplate.opsForValue().set(key, token,
                                                     RedisConstant.TOKEN_EXPIRES_TIME,TimeUnit.MILLISECONDS);
-            return Result.success(token);
+            return Result.success(userId);
         }
 
 
@@ -99,10 +98,9 @@ public class AdminServiceImpl implements AdminService {
     }
 
     @Override
-    public Result<?> updatePassword(UpdatePasswordRequest updatePasswordRequest, HttpServletRequest httpServletRequest) {
+    public Result<?> updatePassword(UpdatePasswordRequest updatePasswordRequest,Long id) {
 
-        int userId = (int) httpServletRequest.getAttribute("userID");
-        String oldPassword = userMapper.getPasswordById(userId);
+        String oldPassword = userMapper.getPasswordById(id);
 
         if(!passwordEncoder.matches(updatePasswordRequest.oldPassword(), oldPassword)){
 
@@ -110,11 +108,10 @@ public class AdminServiceImpl implements AdminService {
         }
 
         String password=passwordEncoder.encode(updatePasswordRequest.newPassword());
-        if(userMapper.setNewPassword(password, userId)>0){
+        if(userMapper.setNewPassword(password, id)>0){
 
-            String token = jwtUtils.generateToken(userId, (int) httpServletRequest.getAttribute("roleID"),
-                                                    (String) httpServletRequest.getAttribute("username"));
-            stringRedisTemplate.opsForValue().set(RedisConstant.ADMIN_TOKEN+userId,token,
+            String token = jwtUtils.generateToken(id, userMapper.getUserRole(id), userMapper.getUserName(id));
+            stringRedisTemplate.opsForValue().set(RedisConstant.ADMIN_TOKEN+id,token,
                                                     RedisConstant.TOKEN_EXPIRES_TIME, TimeUnit.MILLISECONDS);
 
             return Result.success(token);

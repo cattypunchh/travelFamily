@@ -2,8 +2,8 @@ package com.travelfamilies.request.commentRequest;
 
 public record GetCommentRequest(
 
-        int target_type,
-        int target_id,
+        int targetType,
+        long targetId,
         int requestPage,
         int requestNum
 ){

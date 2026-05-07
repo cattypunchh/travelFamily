@@ -7,9 +7,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.scheduling.annotation.Scheduled;
-import org.springframework.util.NumberUtils;
-
-import java.io.Serializable;
 import java.util.*;
 
 @Configuration
@@ -27,7 +24,7 @@ public class SpotTask {
 
         for (String key : keys) {
 
-            int spotId = Integer.parseInt(key.substring(RedisConstant.SPOT_VIEWS.length()));
+            long spotId = Long.parseLong(key.substring(RedisConstant.SPOT_VIEWS.length()));
             int views = Integer.parseInt(Objects.requireNonNull(stringRedisTemplate.opsForValue().get(key)));
 
             spotMapper.updateViews(spotId, views);
@@ -56,10 +53,10 @@ public class SpotTask {
 
         List<Map<String, Object>> updateList = new ArrayList<>();
 
-        int id;
+        long id;
         for (String k : keys) {
             Map<String, Object> map = new HashMap<>();
-            id = Integer.parseInt(k.substring(length));
+            id = Long.parseLong(k.substring(length));
             map.put("id", id);
             double s = Double.parseDouble(Objects.requireNonNull(stringRedisTemplate.opsForValue().get(k)));
             if (mode.equals("count")) {

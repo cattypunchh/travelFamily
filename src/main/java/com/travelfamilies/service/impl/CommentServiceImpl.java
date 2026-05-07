@@ -6,7 +6,7 @@ import com.travelfamilies.mapper.CommentMapper;
 import com.travelfamilies.mapper.ImagesMapper;
 import com.travelfamilies.mapper.UserMapper;
 import com.travelfamilies.pojo.Comment;
-import com.travelfamilies.pojo.CommentImage;
+import com.travelfamilies.pojo.Image;
 import com.travelfamilies.pojo.CommentVO;
 import com.travelfamilies.request.commentRequest.AddCommentRequest;
 import com.travelfamilies.request.commentRequest.GetCommentRequest;
@@ -35,48 +35,48 @@ public class CommentServiceImpl implements CommentService {
     private final ImagesMapper imagesMapper;
 
     @Override
-    public Result<?> addComment(int userId, AddCommentRequest addCommentRequest) {
+    public Result<?> addComment(long userId, AddCommentRequest addCommentRequest) {
 
 
         if (!StringUtils.hasText(addCommentRequest.getContent()))
             return Result.failed("请输入评论内容");
 
         if (addCommentRequest.getCommentId() == 1) {
-            addCommentRequest.setParent_id(0);
-            addCommentRequest.setRoot_id(0);
 
-            if (addCommentRequest.getStar_rating() == null) {
+            if (addCommentRequest.getStarRating() == null) {
 
                 return Result.failed("请评分哦！满分五分");
             }
+            addCommentRequest.setParentId(0);
+            addCommentRequest.setRootId(0);
         } else {
 
             /*回复评论不用打分*/
-            Comment parentComment = commentMapper.getCommentById(addCommentRequest.getParent_id());
+            Comment parentComment = commentMapper.getCommentById(addCommentRequest.getParentId());
 
             if (parentComment == null) {
 
                 return Result.failed("该条评论已被删除，无法继续评论");
             }
 
-            addCommentRequest.setRoot_id(parentComment.getRoot_id() == 0 ? parentComment.getId() : parentComment.getRoot_id());
+            addCommentRequest.setRootId(parentComment.getRootId() == 0 ? parentComment.getId() : parentComment.getRootId());
         }
 
         if (commentMapper.addComment(userId, addCommentRequest) == 1) {
 
-            if (addCommentRequest.getRoot_id() == 0) {
+            if (addCommentRequest.getRootId() == 0) {
 
-                int targetId = addCommentRequest.getTarget_id();
+                long targetId = addCommentRequest.getTargetId();
 
-                String scoreKey = addCommentRequest.getTarget_type() == 1 ? RedisConstant.COMMENT_SPOT_SCORE : RedisConstant.COMMENT_HOTEL_SCORER;
-                String countKey = addCommentRequest.getTarget_type() == 1 ? RedisConstant.COMMENT_SPOT_COUNT : RedisConstant.COMMENT_HOTEL_COUNT;
+                String scoreKey = addCommentRequest.getTargetType() == 1 ? RedisConstant.COMMENT_SPOT_SCORE : RedisConstant.COMMENT_HOTEL_SCORER;
+                String countKey = addCommentRequest.getTargetType() == 1 ? RedisConstant.COMMENT_SPOT_COUNT : RedisConstant.COMMENT_HOTEL_COUNT;
 
-                int result = commentMapper.addImages(addCommentRequest.getId(), addCommentRequest.getImages());
+                int result = imagesMapper.addImages(Long.valueOf(addCommentRequest.getId()), 4, addCommentRequest.getImages());
                 if (result < 1) {
                     Result.failed("图片上传失败，请重试");
                 }
                 stringRedisTemplate.opsForValue().increment(countKey + targetId);
-                stringRedisTemplate.opsForValue().increment(scoreKey + targetId, addCommentRequest.getStar_rating());
+                stringRedisTemplate.opsForValue().increment(scoreKey + targetId, addCommentRequest.getStarRating());
 
             }
 
@@ -98,40 +98,41 @@ public class CommentServiceImpl implements CommentService {
         /*得到每个评论的用户名及头像
         考虑是用map内存还是Redis*/
         List<CommentVO> rootComments = commentVOList.stream()
-                .filter(c -> c.getRoot_id() == 0)
-                .sorted(Comparator.comparing(CommentVO::getCreate_time).reversed())
+                .filter(c -> c.getRootId() == 0)
+                .sorted(Comparator.comparing(CommentVO::getCreateTime).reversed())
                 .toList();
 
-        List<Integer> commentIds = rootComments.stream().map(CommentVO::getId).toList();
-        List<CommentImage> images = imagesMapper.getImages(commentIds);
+        List<Integer> commentIds =rootComments.stream().map(CommentVO::getId).toList();
+
+        List<Image> images = imagesMapper.getImages(commentIds,4);
 
         /*ai提供*/
 //        Map<Integer, List<String>> imagesGroup = images.stream().
-//                collect(Collectors.groupingBy(CommentImage::getComment_id,
-//                        Collectors.mapping(CommentImage::getImage_url, Collectors.toList())));
+//                collect(Collectors.groupingBy(Image::getComment_id,
+//                        Collectors.mapping(Image::getImage_url, Collectors.toList())));
 //
 //
         Map<Integer,List<String>> imagesGroup=new HashMap<>();
 
-        for(CommentImage image:images){
+        for(Image image:images){
 
-            int comment_id=image.getComment_id();
+            int comment_id= Math.toIntExact(image.getTargetId());
             if(!imagesGroup.containsKey(comment_id)){
 
                 imagesGroup.put(comment_id,new ArrayList<>());
             }
-            imagesGroup.get(comment_id).add(image.getImage_url());
+            imagesGroup.get(comment_id).add(image.getImageUrl());
         }
         List<CommentVO> repliedComments = commentVOList.stream()
-                .filter(f -> f.getRoot_id() != 0)
+                .filter(f -> f.getRootId() != 0)
                 .toList();
 
 
         for (CommentVO rootComment : rootComments) {
 
             List<CommentVO> childComments = repliedComments.stream()
-                    .filter(reply -> reply.getRoot_id().equals(rootComment.getId()))
-                    .sorted(Comparator.comparing(CommentVO::getCreate_time).reversed())
+                    .filter(reply -> reply.getRootId().equals(rootComment.getId()))
+                    .sorted(Comparator.comparing(CommentVO::getCreateTime).reversed())
                     .collect(Collectors.toList());
 
             rootComment.setImages(imagesGroup.get(rootComment.getId()));
@@ -145,7 +146,7 @@ public class CommentServiceImpl implements CommentService {
     public Result<?> getReplyComment(GetReplyCommentRequest getReplyCommentRequest) {
 
         PageHelper.startPage(getReplyCommentRequest.pageNum(), getReplyCommentRequest.pageSize());
-        List<Comment> commentList = commentMapper.getReplyComment(getReplyCommentRequest.root_id());
+        List<Comment> commentList = commentMapper.getReplyComment(getReplyCommentRequest.rootId());
         List<CommentVO> commentVOList = getCommentVo(commentList);
 
         if (commentVOList.isEmpty()) {
@@ -158,22 +159,22 @@ public class CommentServiceImpl implements CommentService {
 
     private List<CommentVO> getCommentVo(List<Comment> commentList) {
 
-        Set<Integer> userIds = commentList.stream().map(Comment::getUser_id).collect(Collectors.toSet());
+        Set<Long> userIds = commentList.stream().map(Comment::getUserId).collect(Collectors.toSet());
         if (userIds.isEmpty()) {
             return Collections.emptyList();
         }
         List<GetUserResponse> users = userMapper.getUser(new ArrayList<>(userIds));
         List<CommentVO> commentVOList = new ArrayList<>();
 
-        Map<Integer, GetUserResponse> userMap = new HashMap<>();
+        Map<Long, GetUserResponse> userMap = new HashMap<>();
         for (GetUserResponse user : users) {
             userMap.put(user.getId(), user);
         }
         for (Comment comment : commentList) {
             CommentVO commentVO = new CommentVO();
             BeanUtils.copyProperties(comment, commentVO);
-            commentVO.setNickname(userMap.get(commentVO.getUser_id()).getNickname());
-            commentVO.setAvatar(userMap.get(commentVO.getUser_id()).getAvatar());
+            commentVO.setNickname(userMap.get(commentVO.getUserId()).getNickname());
+            commentVO.setAvatar(userMap.get(commentVO.getUserId()).getAvatar());
             commentVOList.add(commentVO);
         }
         return commentVOList;

@@ -43,8 +43,10 @@ public class SecurityConfig {
 
                 // 3. 配置请求拦截规则
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/user/login", "/user/register","/admin/register","/admin/login","/error").permitAll()
-                        .requestMatchers("/admin/**","/spot/addSpot","/spot/update","/spot/delete").hasRole("ADMIN")
+                        .requestMatchers("/user/login", "/user","/admin","/admin/login","/error").permitAll()
+                        .requestMatchers("/admin/**","/spot/addSpot","/spot/update","/spot/delete","/coupon/add").hasRole("ADMIN")
+                        .requestMatchers("/order/checkIn","/order/checkOut","/order/getOrderByGuest",
+                                "/hotel/add","/hotel/addRoom","/hotel/modify","/hotel/updateRoom","/hotel/updateDayMess","/coupon/add").hasRole("HOTEL")
                         .anyRequest().authenticated()
                 )
                 .exceptionHandling(exception -> exception

@@ -20,9 +20,8 @@ public class UserController {
         this.userService = userService;
     }
 
-    @PostMapping("/register")
+    @PostMapping
     public Result<?> registerUser(@Valid @RequestBody RegisterRequest registerRequest) throws Exception {
-
 
         userService.registerUser(registerRequest);
 
@@ -36,20 +35,33 @@ public class UserController {
 
     }
 
-    @PostMapping("/update")
-    public Result<?> updateUserPassword(@RequestBody UpdatePasswordRequest updatePasswordRequest,
+    @PutMapping("/{id}/password")
+    public Result<?> updateUserPassword(@PathVariable Long id, @RequestBody UpdatePasswordRequest updatePasswordRequest,
                                         HttpServletRequest httpServletRequest) {
 
-        return userService.updateUserPassword(updatePasswordRequest,httpServletRequest);
+        Long userId = (Long) httpServletRequest.getAttribute("userID");
+        if (!userId.equals(id)) {
+
+            return Result.failed("账号异常");
+        } else {
+            return userService.updateUserPassword(id, updatePasswordRequest);
+        }
+
     }
 
 
-    @PutMapping("/updateUser")
-    public Result<?> updateUserDetail(@RequestBody UpdateDetailRequest updateDetailRequest,
-                                        HttpServletRequest httpServletRequest) {
+    @PutMapping("/{id}")
+    public Result<?> updateUserDetail(@PathVariable Long id, @RequestBody UpdateDetailRequest updateDetailRequest,
+                                      HttpServletRequest httpServletRequest) {
 
-        int userId = (int) httpServletRequest.getAttribute("userID");
-        return userService.updateUserDetail(updateDetailRequest, userId);
+        Long userId = (Long) httpServletRequest.getAttribute("userID");
+        if (!userId.equals(id)) {
+
+            return Result.failed("账号异常，请重试或者联系管理员");
+        } else {
+            return userService.updateUserDetail(updateDetailRequest, id);
+        }
+
     }
 
 }

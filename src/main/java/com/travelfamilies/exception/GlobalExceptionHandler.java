@@ -19,7 +19,7 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(DuplicateKeyException.class)
     public Result<?> duplicateKeyException(DuplicateKeyException ignored) {
-        return Result.failed("该用户名重复！");
+        return Result.failed("该信息重复！");
     }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)

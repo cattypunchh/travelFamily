@@ -18,21 +18,21 @@ public interface SpotMapper {
     List<SpotResponse> getSpot(QuerySpotRequest querySpotRequest);
 
     @Select("select * from spot where id=#{id}")
-    Spot getSpotDetail(int id);
+    Spot getSpotDetail(Long id);
 
-    @Insert("insert into spot (name,city,type,address,price,open_time,description,image_urls,status,views) " +
-            "values (#{name},#{city},#{type},#{address},#{price},#{open_time},#{description},#{image_urls},#{status},#{views})")
-    @Options(useGeneratedKeys = true, keyProperty = "id")
+    @Insert("insert into spot (id,name,city,type,address,price,open_time,description,image_urls,status,views) " +
+            "values (#{id},#{name},#{city},#{type},#{address},#{price},#{openTime},#{description},#{imageUrls},#{status},#{views})")
     int addSpot(Spot spot);
 
-    @Update("update spot set price=#{price},open_time=#{open_time},description=#{description},image_urls=#{image_urls} where id=#{id}")
-    int updateSpot(UpdateDetailRequest updateDetailRequest);
+    @Update("update spot set price=#{updateDetailRequest.price},open_time=#{updateDetailRequest.openTime}," +
+            "description=#{updateDetailRequest.description},image_urls=#{updateDetailRequest.imageUrls} where id=#{id}")
+    int updateSpot(UpdateDetailRequest updateDetailRequest,long id);
 
     @Delete("delete from spot where id=#{id}")
-    int deleteSpot(int id);
+    int deleteSpot(Long id);
 
     @Update("update spot set views=#{views} where id=#{spotId}")
-    void updateViews(int spotId, int views);
+    void updateViews(Long spotId, int views);
 
     @Select("select id from spot where name=#{name}")
     Integer getSpotId(String name);

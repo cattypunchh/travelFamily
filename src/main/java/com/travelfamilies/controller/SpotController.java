@@ -1,11 +1,12 @@
 package com.travelfamilies.controller;
 
-import com.travelfamilies.pojo.Spot;
 import com.travelfamilies.request.spotRequest.QuerySpotRequest;
+import com.travelfamilies.request.spotRequest.SpotRequest;
 import com.travelfamilies.request.spotRequest.UpdateDetailRequest;
 import com.travelfamilies.response.Result;
 import com.travelfamilies.service.SpotService;
 import jakarta.servlet.http.HttpServletRequest;
+import jakarta.websocket.server.PathParam;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 
@@ -30,32 +31,32 @@ public class SpotController {
     * 应该更加动态
     *
     * (已替换称更加动态的搜索）*/
-    @GetMapping("")
+    @GetMapping
     public Result<?> getSpot(QuerySpotRequest querySpotRequest) {
 
         return spotService.getSpot(querySpotRequest);
     }
 
-    @GetMapping("/detail")
-    public Result<?> getSpotDetail(@RequestParam int id,HttpServletRequest httpServletRequest) {
+    @GetMapping("/{id}")
+    public Result<?> getSpotDetail(@PathVariable("id") Long id, HttpServletRequest httpServletRequest) {
 
             return spotService.getSpotDetail(id,httpServletRequest);
     }
 
-    @PostMapping("/add")
-    public Result<?> addSpot(@RequestBody Spot spot,HttpServletRequest httpServletRequest){
+    @PostMapping
+    public Result<?> addSpot(@RequestBody SpotRequest spotRequest, HttpServletRequest httpServletRequest){
 
-        return spotService.addSpot(spot);
+        return spotService.addSpot(spotRequest);
     }
 
-    @PutMapping("/update")
-    public Result<?> updateSpot(@RequestBody UpdateDetailRequest updateDetailRequest,HttpServletRequest httpServletRequest){
+    @PutMapping("/{id}")
+    public Result<?> updateSpot(@PathVariable long id,@RequestBody UpdateDetailRequest updateDetailRequest){
 
-        return  spotService.updateSpot(updateDetailRequest);
+        return  spotService.updateSpot(updateDetailRequest,id);
     }
 
-    @PutMapping("/delete")
-    public Result<?> deleteSpot(@RequestParam int id){
+    @DeleteMapping("/{id}")
+    public Result<?> deleteSpot(@PathVariable("id") Long id){
 
         return spotService.deleteSpot(id);
     }

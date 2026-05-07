@@ -15,7 +15,7 @@ public interface UserService {
 
     Result<?> loginUser(@Valid LoginRequest loginRequest);
 
-    Result<?> updateUserPassword(UpdatePasswordRequest updatePasswordRequest, HttpServletRequest httpServletRequest);
+    Result<?> updateUserPassword(Long userId,UpdatePasswordRequest updatePasswordRequest);
 
-    Result<?> updateUserDetail(UpdateDetailRequest updateDetailRequest, int userId);
+    Result<?> updateUserDetail(UpdateDetailRequest updateDetailRequest, Long userId);
 }

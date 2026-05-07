@@ -6,7 +6,7 @@ import com.travelfamilies.request.commentRequest.GetReplyCommentRequest;
 import com.travelfamilies.response.Result;
 
 public interface CommentService {
-    Result<?> addComment(int userId, AddCommentRequest addCommentRequest);
+    Result<?> addComment(long userId, AddCommentRequest addCommentRequest);
 
     Result<?> getComment(GetCommentRequest getCommentRequest);
 
