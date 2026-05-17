@@ -8,4 +8,5 @@ public record UpdatePasswordRequest(
         String oldPassword,
 
         @NotBlank(message = "新密码不能为空")
-        String newPassword) {}
+        String newPassword) {
+}

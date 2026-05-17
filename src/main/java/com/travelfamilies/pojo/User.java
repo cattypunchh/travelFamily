@@ -3,6 +3,8 @@ package com.travelfamilies.pojo;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import tools.jackson.databind.annotation.JsonSerialize;
+import tools.jackson.databind.ser.std.ToStringSerializer;
 
 import java.time.LocalDateTime;
 
@@ -11,6 +13,7 @@ import java.time.LocalDateTime;
 @NoArgsConstructor
 public class User {
 
+    @JsonSerialize(using = ToStringSerializer.class)
     private Long id;
     private String username;
     private String password;
@@ -22,5 +25,5 @@ public class User {
     private int status;
     private LocalDateTime createTime;
     private LocalDateTime updateTime;
-    private Integer role=1;
+    private Integer role = 1;
 }

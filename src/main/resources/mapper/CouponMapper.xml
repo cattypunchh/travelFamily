@@ -26,4 +26,55 @@
             c.coupon_id, c.title, c.scope_type, c.threshold, c.discount_amount, c.end_time
     </select>
 
+
+        <select id="getCoupons" resultType="com.travelfamilies.pojo.CouponReceive">
+            SELECT
+            c.coupon_id,
+            c.title,
+            c.scope_type,
+            c.scope_id,
+            c.threshold,
+            c.discount_amount,
+            c.stock,
+            c.max_per_user,
+            c.end_time,
+            c.status,
+            <!-- 用户状态计算 -->
+            IF(uc.user_id IS NOT NULL, 1, 0) AS is_received,
+            IFNULL(uc.received_count, 0) AS received_count
+            FROM coupons c
+            LEFT JOIN (
+            SELECT
+            coupon_id,
+            user_id,
+            MAX(status) AS max_status,
+            COUNT(id) AS received_count
+            FROM user_coupons
+            WHERE user_id = #{userId}
+            GROUP BY coupon_id, user_id
+            ) uc ON c.coupon_id = uc.coupon_id
+            <where>
+                <!-- 基础过滤：上架中且没过期的券 -->
+                AND c.status = 1
+                AND c.end_time > NOW()
+
+                <!-- type 1: 全场通用券, 2: 仅限特定酒店券 -->
+                <if test="getCouponRequest.type == 1">
+                    AND c.scope_type = 1
+                </if>
+                <if test="getCouponRequest.type == 2">
+                    AND c.scope_type = 2
+                </if>
+
+                <!-- status 1: 未领取(或没领够), 2: 已领取 -->
+                <if test="getCouponRequest.status == 1">
+                    AND (uc.user_id IS NULL OR uc.received_count &lt; c.max_per_user)
+                </if>
+                <if test="getCouponRequest.status == 2">
+                    AND uc.user_id IS NOT NULL
+                </if>
+            </where>
+            ORDER BY c.coupon_id DESC
+        </select>
+
 </mapper>

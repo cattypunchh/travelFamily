@@ -4,9 +4,9 @@ server:
 spring:
   datasource:
     driver-class-name: com.mysql.cj.jdbc.Driver
-    url: jdbc:mysql://localhost:3306/travelFamily?serverTimezone=Asia/Shanghai&useUnicode=true&characterEncoding=utf-8
-    username: root
-    password: 123456
+    url: jdbc:mysql://localhost:3306/your_database_name?serverTimezone=Asia/Shanghai&useUnicode=true&characterEncoding=utf-8
+    username: your_username
+    password: your_password
 
   data:
     redis:
@@ -23,6 +23,6 @@ logging:
 aliyun:
   oss:
     endpoint: oss-cn-hangzhou.aliyuncs.com
-    accessKeyId: LTAI5t7z2kAJh1CmUw1PDMko
-    accessKeySecret: 1RQLHiXAPpVipQlfdWJ7QeDbMdvY7y
-    bucketName: travel-families-img
+    accessKeyId: your_aliyun_access_key_id
+    accessKeySecret: your_aliyun_access_key_secret
+    bucketName: your_bucket_name

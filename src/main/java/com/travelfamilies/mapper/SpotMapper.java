@@ -12,10 +12,10 @@ import java.util.Map;
 @Mapper
 public interface SpotMapper {
 
-    @Select("select id,name,city,type,open_time,views from spot where status=1 order by views desc LIMIT 10")
+    @Select("select id,name,city,type,open_time,views,image_urls from spot where status=1 order by views desc LIMIT 10")
     List<SpotResponse> getHotSpot();
 
-    List<SpotResponse> getSpot(QuerySpotRequest querySpotRequest);
+    List<Spot> getSpot(QuerySpotRequest querySpotRequest);
 
     @Select("select * from spot where id=#{id}")
     Spot getSpotDetail(Long id);
@@ -25,8 +25,8 @@ public interface SpotMapper {
     int addSpot(Spot spot);
 
     @Update("update spot set price=#{updateDetailRequest.price},open_time=#{updateDetailRequest.openTime}," +
-            "description=#{updateDetailRequest.description},image_urls=#{updateDetailRequest.imageUrls} where id=#{id}")
-    int updateSpot(UpdateDetailRequest updateDetailRequest,long id);
+            "description=#{updateDetailRequest.description},image_urls=#{updateDetailRequest.imageUrls[0]} where id=#{id}")
+    int updateSpot(UpdateDetailRequest updateDetailRequest, long id);
 
     @Delete("delete from spot where id=#{id}")
     int deleteSpot(Long id);
@@ -37,7 +37,10 @@ public interface SpotMapper {
     @Select("select id from spot where name=#{name}")
     Integer getSpotId(String name);
 
-    int updateCount(@Param("list") List<Map<String , Object>> updateList);
+    int updateCount(@Param("list") List<Map<String, Object>> updateList);
 
     int updateStarRating(@Param("list") List<Map<String, Object>> updateList);
+
+    @Select("select * from spot")
+    List<Spot> getAllSpot();
 }

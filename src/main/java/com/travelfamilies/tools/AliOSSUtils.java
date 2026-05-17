@@ -8,6 +8,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.Objects;
 import java.util.UUID;
 
 @Component
@@ -28,18 +29,17 @@ public class AliOSSUtils {
 
         // 避免文件覆盖，使用UUID生成唯一文件名
         String originalFilename = file.getOriginalFilename();
-        String fileName = UUID.randomUUID().toString() + originalFilename.substring(originalFilename.lastIndexOf("."));
+        String fileName = UUID.randomUUID() + Objects.requireNonNull(originalFilename).substring(originalFilename.lastIndexOf("."));
 
         // 上传文件到OSS
         OSS ossClient = new OSSClientBuilder().build(endpoint, accessKeyId, accessKeySecret);
         ossClient.putObject(bucketName, fileName, inputStream);
 
         // 文件访问路径 (存储到数据库的 URL)
-        // 注意：这里需要根据你的Bucket地域拼接，如果你选的是杭州，格式如下：
         String url = "https://" + bucketName + "." + endpoint + "/" + fileName;
 
         // 关闭ossClient
         ossClient.shutdown();
-        return url; // 返回这个URL，后续存入数据库 image 表
+        return url;
     }
 }

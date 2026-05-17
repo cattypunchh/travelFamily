@@ -1,10 +1,23 @@
 package com.travelfamilies.request.commentRequest;
 
-public record GetCommentRequest(
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+import tools.jackson.databind.annotation.JsonSerialize;
+import tools.jackson.databind.ser.std.ToStringSerializer;
 
-        int targetType,
-        long targetId,
-        int requestPage,
-        int requestNum
-){
+@Data
+@AllArgsConstructor
+@NoArgsConstructor
+public class GetCommentRequest {
+
+    private int targetType;
+
+    @JsonSerialize(using = ToStringSerializer.class)
+    private long targetId;
+
+    private int requestPage;
+
+    private int requestNum;
+
 }

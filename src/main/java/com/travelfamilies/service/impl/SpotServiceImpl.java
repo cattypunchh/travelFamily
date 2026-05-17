@@ -1,10 +1,13 @@
 package com.travelfamilies.service.impl;
 
+import com.github.pagehelper.PageHelper;
+import com.github.pagehelper.PageInfo;
 import com.travelfamilies.mapper.ImagesMapper;
 import com.travelfamilies.mapper.SpotMapper;
 import com.travelfamilies.pojo.Image;
 import com.travelfamilies.pojo.Spot;
 import com.travelfamilies.pojo.SpotVO;
+import com.travelfamilies.request.spotRequest.GetSpotRequest;
 import com.travelfamilies.request.spotRequest.QuerySpotRequest;
 import com.travelfamilies.request.spotRequest.SpotRequest;
 import com.travelfamilies.request.spotRequest.UpdateDetailRequest;
@@ -46,18 +49,25 @@ public class SpotServiceImpl implements SpotService {
     @Override
     public Result<?> getSpot(QuerySpotRequest querySpotRequest) {
 
-        //前端搜索框旁边使用
-        List<String> typeList = List.of(new String[]{"name", "city", "type"});
-
-
-        List<SpotResponse> spotResponse = spotMapper.getSpot(querySpotRequest);
+        PageHelper.startPage(querySpotRequest.requestPage(), querySpotRequest.requestNum());
+        List<Spot> spotResponse = spotMapper.getSpot(querySpotRequest);
 
         if (spotResponse == null) {
 
             return Result.failed("无该景点");
         }
+        PageInfo<Spot> pageInfo = new PageInfo<>(spotResponse);
+        return Result.success(pageInfo);
+    }
 
-        return Result.success(spotResponse);
+    @Override
+    public Result<?> getAllSpot(GetSpotRequest getSpotRequest) {
+
+        PageHelper.startPage(getSpotRequest.requestPage(), getSpotRequest.requestNum());
+        List<Spot> spots = spotMapper.getAllSpot();
+
+        PageInfo<Spot> pageInfo = new PageInfo<>(spots);
+        return Result.success(pageInfo);
     }
 
     @Override
@@ -65,9 +75,10 @@ public class SpotServiceImpl implements SpotService {
 
         long userId = (long) httpServletRequest.getAttribute("userID");
 
+
         /*防止某用户恶意刷浏览量*/
         Boolean result = stringRedisTemplate.opsForValue().setIfAbsent(RedisConstant.SPOT_VIEWS_USER + userId + ":" + id,
-                LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")) + "起该用户在一个小时内已访问过该景点信息，文章id为：" + id,
+                LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")) + "起该用户在5秒内已访问过该景点信息，文章id为：" + id,
                 RedisConstant.SPOT_VIEWS_USER_EXPIRES, TimeUnit.MILLISECONDS);
 
         if (Boolean.TRUE.equals(result)) {
@@ -90,7 +101,7 @@ public class SpotServiceImpl implements SpotService {
     public Result<?> addSpot(SpotRequest spotRequest) {
 
 
-        if (spotMapper.getSpotId(spotRequest.getName()) !=null)
+        if (spotMapper.getSpotId(spotRequest.getName()) != null)
             return Result.failed("该景点已添加过，或者请检查景点名字是否重复");
         Spot spot = new Spot();
         BeanUtils.copyProperties(spotRequest, spot);
@@ -101,7 +112,7 @@ public class SpotServiceImpl implements SpotService {
         spot.setId(id);
         int result = spotMapper.addSpot(spot);
 
-        imagesMapper.addImages(spot.getId(), 3, spotRequest.getImageUrls());
+        imagesMapper.addImages(spot.getId(), 3, images);
 
         if (result > 0) {
 
@@ -116,18 +127,26 @@ public class SpotServiceImpl implements SpotService {
 
     @Override
     @CacheEvict(value = RedisConstant.SPOT_TOP10_LIST, key = "'top10'")
-    public Result<?> updateSpot(UpdateDetailRequest updateDetailRequest,long id) {
+    public Result<?> updateSpot(UpdateDetailRequest updateDetailRequest, long id) {
 
-        return spotMapper.updateSpot(updateDetailRequest,id) == 1 ?
-                Result.success() :
-                Result.failed("更新失败");
+        int deleteResult = imagesMapper.deleteImages(id, 3);
 
+        if (deleteResult < 0) {
+            return Result.failed("删除旧照片失败");
+        }
+
+        imagesMapper.addImages(id, 3, updateDetailRequest.imageUrls());
+
+        return spotMapper.updateSpot(updateDetailRequest, id) > 0 ?
+                Result.success()
+                : Result.failed("更新景点信息失败");
     }
 
     @Override
     @CacheEvict(value = RedisConstant.SPOT_TOP10_LIST, key = "'top10'")
     public Result<?> deleteSpot(Long id) {
 
+        imagesMapper.deleteImages(id, 3);
         return spotMapper.deleteSpot(id) == 1 ?
                 Result.success() :
                 Result.failed("删除失败");

@@ -11,6 +11,9 @@ import java.util.List;
 @NoArgsConstructor
 public class HotelVO {
 
+    List<Image> images;
+    List<Room> rooms;
+    List<Coupon> coupons;
     private String name;
     private String city;
     private String district;
@@ -19,7 +22,4 @@ public class HotelVO {
     private String phone;
     private String description;
     private int starLevel;
-    List<Image> images;
-    List<Room> rooms;
-    List<Coupon> coupons;
 }

@@ -5,9 +5,9 @@
 
 <mapper namespace="com.travelfamilies.mapper.SpotMapper">
 
-    <select id="getSpot" resultType="com.travelfamilies.response.SpotResponse">
+    <select id="getSpot" resultType="com.travelfamilies.pojo.Spot">
         select
-        id,name,city,type,open_time,views
+        *
         from spot
         <where>
             <choose>
@@ -35,44 +35,35 @@
 
 
     <update id="updateCount">
-
-        update spot
-        <set>
-            <trim prefix="comment_count = case" suffix="end">
-
-                <foreach collection="list" item="item">
-                    WHEN id = #{item.id} THEN #{item.mode}
+        <if test="list != null and list.size() > 0">
+            update spot
+            <set>
+                comment_count =
+                <foreach collection="list" item="item" separator=" " open="case id" close="end">
+                    when #{item.id} then #{item.mode}
                 </foreach>
-
-            </trim>
-        </set>
-
-        WHERE id IN
-
-        <foreach collection="list" item="item" open="(" separator="," close=")">
-            #{item.id}
-        </foreach>
-
+            </set>
+            WHERE id IN
+            <foreach collection="list" item="item" open="(" separator="," close=")">
+                #{item.id}
+            </foreach>
+        </if>
     </update>
 
+
     <update id="updateStarRating">
-
-        update spot
-        <set>
-            <trim prefix="average_score = case" suffix="end">
-
-                <foreach collection="list" item="item">
-                    WHEN id = #{item.id} THEN #{item.mode}
+        <if test="list != null and list.size() > 0">
+            update spot
+            <set>
+                average_score =
+                <foreach collection="list" item="item" separator=" " open="case id" close="end">
+                    when #{item.id} then #{item.mode}
                 </foreach>
-
-            </trim>
-        </set>
-
-        WHERE id IN
-
-        <foreach collection="list" item="item" open="(" separator="," close=")">
-            #{item.id}
-        </foreach>
-
+            </set>
+            WHERE id IN
+            <foreach collection="list" item="item" open="(" separator="," close=")">
+                #{item.id}
+            </foreach>
+        </if>
     </update>
 </mapper>

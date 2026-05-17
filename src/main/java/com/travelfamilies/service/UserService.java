@@ -1,12 +1,8 @@
 package com.travelfamilies.service;
 
 import com.travelfamilies.exception.BusinessException;
-import com.travelfamilies.request.userRequest.LoginRequest;
-import com.travelfamilies.request.userRequest.RegisterRequest;
-import com.travelfamilies.request.userRequest.UpdateDetailRequest;
-import com.travelfamilies.request.userRequest.UpdatePasswordRequest;
+import com.travelfamilies.request.userRequest.*;
 import com.travelfamilies.response.Result;
-import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 
 public interface UserService {
@@ -15,7 +11,11 @@ public interface UserService {
 
     Result<?> loginUser(@Valid LoginRequest loginRequest);
 
-    Result<?> updateUserPassword(Long userId,UpdatePasswordRequest updatePasswordRequest);
+    Result<?> updateUserPassword(Long userId, UpdatePasswordRequest updatePasswordRequest);
 
     Result<?> updateUserDetail(UpdateDetailRequest updateDetailRequest, Long userId);
+
+    Result<?> wxLogin(String code);
+
+    Result<?> wxProfile(WxProfileRequest wxProfileRequest, long id);
 }

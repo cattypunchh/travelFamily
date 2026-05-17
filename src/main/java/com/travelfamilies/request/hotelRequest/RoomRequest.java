@@ -12,10 +12,10 @@ import java.util.List;
 @AllArgsConstructor
 @NoArgsConstructor
 public class RoomRequest {
-     private Integer id;
+    private Integer id;
 
     @NotNull(message = "酒店ID不能为空")
-    private Long hotelId;
+    private String hotelId;
 
     @NotBlank(message = "房型名称不能为空")
     private String roomName;

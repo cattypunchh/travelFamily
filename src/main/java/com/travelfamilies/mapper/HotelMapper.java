@@ -8,7 +8,6 @@ import com.travelfamilies.response.GetRoomDayMess;
 import com.travelfamilies.response.GetRoomInfoOrderResponse;
 import com.travelfamilies.response.GetRoomResponse;
 import org.apache.ibatis.annotations.*;
-import org.springframework.security.core.parameters.P;
 
 import java.math.BigDecimal;
 import java.util.List;
@@ -16,11 +15,11 @@ import java.util.List;
 @Mapper
 public interface HotelMapper {
 
-    @Insert("insert into hotel(id,name,city,district,business_area,address,description,star_level,base_price,main_pic,status)" +
+    @Insert("insert into hotel(id,name,city,district,business_area,address,description,star_level,base_price,main_pic,status,admin_id)" +
             " values (#{id},#{addHotelRequest.name},#{addHotelRequest.city},#{addHotelRequest.district}," +
             "#{addHotelRequest.businessArea},#{addHotelRequest.address},#{addHotelRequest.description}," +
-            "#{addHotelRequest.starLevel},#{addHotelRequest.basePrice},#{mainPic},#{addHotelRequest.status})")
-    int addHotel(String mainPic, HotelRequest addHotelRequest,long id);
+            "#{addHotelRequest.starLevel},#{addHotelRequest.basePrice},#{mainPic},#{addHotelRequest.status},#{addHotelRequest.adminId})")
+    int addHotel(String mainPic, HotelRequest addHotelRequest, long id);
 
 
     @Select("select name from hotel where name=#{name} and city=#{city}")
@@ -40,9 +39,10 @@ public interface HotelMapper {
     @Update("update hotel set name=#{updateHotelRequest.name},city=#{updateHotelRequest.city}," +
             "district=#{updateHotelRequest.district},business_area=#{updateHotelRequest.businessArea}," +
             "address=#{updateHotelRequest.address},description=#{updateHotelRequest.description}," +
-            "star_level=#{updateHotelRequest.starLevel},base_price=#{updateHotelRequest.basePrice} " +
+            "star_level=#{updateHotelRequest.starLevel},base_price=#{updateHotelRequest.basePrice}," +
+            "main_pic=#{main_pic},status=#{updateHotelRequest.status} " +
             "where id=#{id}")
-    int updateHotel(HotelRequest updateHotelRequest,long id);
+    int updateHotel(HotelRequest updateHotelRequest, long id, String main_pic);
 
     @Update("update hotel_room_type set room_name=#{roomName},bed_type=#{bedType},`window`=#{window},area=#{area}," +
             "default_price=#{defaultPrice},total_inventory=#{totalInventory},status=#{status} where id=#{id}")
@@ -66,9 +66,9 @@ public interface HotelMapper {
     @Select("select id,hotel_id,default_price,total_inventory,status from hotel_room_type where status=1")
     List<GetRoomResponse> getRoom();
 
-    int addStockByDay(@Param("rooms") List<GetRoomResponse> rooms,@Param("time") String time);
+    int addStockByDay(@Param("rooms") List<GetRoomResponse> rooms, @Param("time") String time);
 
-    int deleteStockByDay(@Param("rooms") List<GetRoomResponse> rooms,@Param("time") String beforeTime);
+    int deleteStockByDay(@Param("rooms") List<GetRoomResponse> rooms, @Param("time") String beforeTime);
 
     @Select("select id,name,city,district,business_area,base_price,main_pic from hotel where status=1")
     List<GetHotelResponse> get();
@@ -76,7 +76,7 @@ public interface HotelMapper {
     @Select("select * from hotel where id=#{hotelId}")
     Hotel getHotel(Long hotelId);
 
-    List<Room> getRooms(GetRoomRequest getRoomRequest,String localDay);
+    List<Room> getRooms(GetRoomRequest getRoomRequest, String localDay);
 
     List<GetRoomDayMess> getDayMess(@Param("roomIds") List<Integer> roomsIds, @Param("today") String today);
 
@@ -90,7 +90,7 @@ public interface HotelMapper {
             "and status=1 " +
             "and sale_date between #{locateRoomRequest.startTime} and #{localDays} " +
             "and stock <= 0")
-    int getLocateRoom(LocateRoomRequest locateRoomRequest,String localDays);
+    int getLocateRoom(LocateRoomRequest locateRoomRequest, String localDays);
 
     @Select("select id,hotel_id,room_name,bed_type from hotel_room_type where id=#{roomId}")
     GetRoomInfoOrderResponse getRoomDetail(int roomId);
@@ -111,4 +111,35 @@ public interface HotelMapper {
             "and sale_date between #{startTime} and #{localDays}")
     int rollBackStock(Integer roomId, String startTime, String localDays);
 
+    @Select("select id from hotel where admin_id=#{adminId}")
+    List<Long> getHotelByAdmin(long adminId);
+
+    @Select("select * from hotel_room_type where hotel_id=#{hotelId};")
+    List<Room> getRoomByHotel(long hotelId);
+
+    @Delete("delete from hotel_room_stock where hotel_id=#{hotelId}")
+    void deleteRoomStock(long hotelId);
+
+    @Delete("delete from hotel where id=#{hotelId}")
+    int deleteHotel(long hotelId);
+
+    @Select("select * from hotel_room_stock where sale_date=#{day} and room_type_id=#{roomIds} ")
+    GetRoomDayMess getDayMessByDay(int roomIds, String day);
+
+    void deleteRoomType(List<Integer> roomIds);
+
+    @Delete("delete from hotel_room_stock where room_type_id=#{roomId}")
+    void deleteRoomStockByRoom(int roomId);
+
+
+    @Update("update hotel set status=#{status} where id=#{id}")
+    int updateStatus(long id, int status);
+
+    @Select("select * from hotel where status=#{status}")
+    List<Hotel> getHotelByStatus(int status);
+
+    @Select("select * from hotel")
+    List<Hotel> getAllHotels();
+
+    List<GetHotelResponse> getHotelWOrder(@Param("hotelIds") List<Long> hotelsId);
 }

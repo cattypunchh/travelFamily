@@ -3,7 +3,10 @@ package com.travelfamilies.mapper;
 import com.travelfamilies.pojo.Comment;
 import com.travelfamilies.request.commentRequest.AddCommentRequest;
 import com.travelfamilies.request.commentRequest.GetCommentRequest;
-import org.apache.ibatis.annotations.*;
+import org.apache.ibatis.annotations.Insert;
+import org.apache.ibatis.annotations.Mapper;
+import org.apache.ibatis.annotations.Options;
+import org.apache.ibatis.annotations.Select;
 
 import java.util.List;
 
@@ -14,7 +17,7 @@ public interface CommentMapper {
             "values (#{userId},#{addCommentRequest.targetId},#{addCommentRequest.targetType},#{addCommentRequest.content}," +
             "#{addCommentRequest.starRating},#{addCommentRequest.parentId},#{addCommentRequest.rootId})")
     @Options(useGeneratedKeys = true, keyProperty = "addCommentRequest.id", keyColumn = "id")
-    int addComment(long userId,AddCommentRequest addCommentRequest);
+    int addComment(long userId, AddCommentRequest addCommentRequest);
 
     @Select("select * from comment where  id=#{parentId}")
     @Options(useGeneratedKeys = true, keyProperty = "Comment.id", keyColumn = "id")
@@ -27,4 +30,6 @@ public interface CommentMapper {
     @Select("select * from comment where root_id=#{rootId}")
     List<Comment> getReplyComment(int rootId);
 
+    @Select("select id from comment where target_id=#{orderId} and user_id=#{userId} and target_type=3")
+    Integer getCommentStatus(long orderId, long userId);
 }

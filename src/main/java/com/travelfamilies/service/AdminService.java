@@ -1,11 +1,9 @@
 package com.travelfamilies.service;
 
 import com.travelfamilies.exception.BusinessException;
-import com.travelfamilies.request.userRequest.LoginRequest;
-import com.travelfamilies.request.userRequest.RegisterRequest;
-import com.travelfamilies.request.userRequest.UpdatePasswordRequest;
+import com.travelfamilies.request.GetDataRequest;
+import com.travelfamilies.request.userRequest.*;
 import com.travelfamilies.response.Result;
-import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 
 public interface AdminService {
@@ -13,7 +11,14 @@ public interface AdminService {
 
     Result<?> loginAdmin(LoginRequest loginRequest);
 
-    Result<?> updateStatus(String username);
+    Result<?> updateStatus(Long id);
 
-    Result<?> updatePassword(@Valid UpdatePasswordRequest updatePasswordRequest,Long id);
+    Result<?> updatePassword(@Valid UpdatePasswordRequest updatePasswordRequest, Long id);
+
+    Result<?> resetPass(ResetPasswordRequest resetPasswordRequest);
+
+    Result<?> getAllUser(GetDataRequest getDataRequest);
+
+    Result<?> getUser(QueryUserRequest queryUserRequest);
+
 }

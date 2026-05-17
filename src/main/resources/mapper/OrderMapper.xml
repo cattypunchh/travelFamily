@@ -12,6 +12,16 @@
                  and status=#{category}
             </if>
         </where>
-
+        ORDER BY create_time DESC
     </select>
+
+    <update id="updateStatus">
+        UPDATE hotel_order
+        SET status = #{resultPay}
+        <if test="resultPay != 3">
+            , pay_time = NOW()
+        </if>
+        WHERE id = #{orderId}
+    </update>
+
 </mapper>

@@ -11,4 +11,6 @@ public interface CommentService {
     Result<?> getComment(GetCommentRequest getCommentRequest);
 
     Result<?> getReplyComment(GetReplyCommentRequest getReplyCommentRequest);
+
+    Result<?> getCommentStatus(long orderId, long userId);
 }

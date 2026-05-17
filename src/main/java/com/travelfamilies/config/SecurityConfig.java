@@ -20,11 +20,14 @@ public class SecurityConfig {
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
     private final AccessDeniedHandler accessDeniedHandler;
     private final AuthenticationEntryPoint authenticationEntryPoint;
+    private final CorsConfig corsConfig;
 
-    public SecurityConfig(JwtAuthenticationFilter jwtAuthenticationFilter, AccessDeniedHandler accessDeniedHandler, AuthenticationEntryPoint authenticationEntryPoint) {
+    public SecurityConfig(JwtAuthenticationFilter jwtAuthenticationFilter, AccessDeniedHandler accessDeniedHandler,
+                          AuthenticationEntryPoint authenticationEntryPoint, CorsConfig corsConfig) {
         this.jwtAuthenticationFilter = jwtAuthenticationFilter;
         this.accessDeniedHandler = accessDeniedHandler;
         this.authenticationEntryPoint = authenticationEntryPoint;
+        this.corsConfig = corsConfig;
     }
 
     @Bean
@@ -33,26 +36,32 @@ public class SecurityConfig {
     }
 
     @Bean
-    public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
+    public SecurityFilterChain securityFilterChain(HttpSecurity http, CorsConfig corsConfig){
+
         http
-                // 1. 关闭 CSRF（因为 JWT 是无状态的）
+                .cors(cors -> cors.configurationSource(corsConfig.corsConfigurationSource()))
+
+                // 1. 关闭 CSRF
                 .csrf(csrf -> csrf.disable())
 
-                // 2. 禁用 Session（交给 JWT 管理）
+                // 2. 禁用 Session
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
 
-                // 3. 配置请求拦截规则
+                // 3. 请求拦截规则
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/user/login", "/user","/admin","/admin/login","/error").permitAll()
-                        .requestMatchers("/admin/**","/spot/addSpot","/spot/update","/spot/delete","/coupon/add").hasRole("ADMIN")
-                        .requestMatchers("/order/checkIn","/order/checkOut","/order/getOrderByGuest",
-                                "/hotel/add","/hotel/addRoom","/hotel/modify","/hotel/updateRoom","/hotel/updateDayMess","/coupon/add").hasRole("HOTEL")
+                        .requestMatchers("/user/login", "/user", "/admin", "/admin/login", "/error", "/upload", "/admin/resetPassword", "/user/wx-login", "/user/wx-profile").permitAll()
+                        .requestMatchers("/order/checkIn", "/order/checkOut", "/order/getOrderByGuest",
+                                "/hotel/add", "/hotel/addRoom", "/hotel/modify", "/hotel/updateRoom",
+                                "/hotel/updateDayMess", "/coupon/add", "/hotel/getOwner").hasRole("HOTEL")
+                        .requestMatchers("/spot/addSpot", "/spot/update", "/spot/delete", "/coupon/add", "/hotel/list", "/hotel/all").hasRole("ADMIN")
+                        .requestMatchers("/hotel/status/**").hasAnyRole("ADMIN", "HOTEL")
+
                         .anyRequest().authenticated()
                 )
                 .exceptionHandling(exception -> exception
-                .authenticationEntryPoint(authenticationEntryPoint)
-                .accessDeniedHandler(accessDeniedHandler)
-        );
+                        .authenticationEntryPoint(authenticationEntryPoint)
+                        .accessDeniedHandler(accessDeniedHandler)
+                );
 
         http.addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
         return http.build();

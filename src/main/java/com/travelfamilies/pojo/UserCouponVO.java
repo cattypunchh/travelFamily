@@ -22,6 +22,4 @@ public class UserCouponVO {
     private String endTime;
     private BigDecimal endPrice;
 
-
-
 }

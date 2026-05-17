@@ -2,6 +2,7 @@ package com.travelfamilies.mapper;
 
 import com.travelfamilies.pojo.CheckInRecord;
 import com.travelfamilies.pojo.HotelOrder;
+import com.travelfamilies.request.orderRequest.GetOrderRequest;
 import org.apache.ibatis.annotations.*;
 
 import java.math.BigDecimal;
@@ -20,13 +21,12 @@ public interface OrderMapper {
     @Options(useGeneratedKeys = true, keyProperty = "id", keyColumn = "id")
     int createOrder(HotelOrder hotelOrder);
 
-    @Update("update hotel_order set status=#{resultPay} where id=#{orderId}")
-    void updateStatus(long orderId, int resultPay);
+    int updateStatus(long orderId, int resultPay);
 
     @Select("select * from hotel_order where id=#{orderId}")
     HotelOrder getOrder(long orderId);
 
-    List<HotelOrder> getOrderSort(@Param("userId") Long userId,@Param("category") int category);
+    List<HotelOrder> getOrderSort(@Param("userId") Long userId, @Param("category") int category);
 
     @Select("select * from hotel_order where user_id=#{guestId} and status=1")
     List<HotelOrder> getOrderByGuestId(long guestId);
@@ -49,13 +49,16 @@ public interface OrderMapper {
             ")")
     int createCheckIn(CheckInRecord checkInRecord);
 
-    @Select("select * from check_in_record where id=#{recordId}")
-    CheckInRecord getRecord(long recordId);
+    @Select("select * from check_in_record where order_id=#{orderId}")
+    CheckInRecord getRecord(long orderId);
 
     @Update("update  check_in_record set actual_check_out=#{expectTime},is_early_checkout=#{earlyCheckOut}," +
-            "refund_amount=#{refundPrice},operator_id=#{userId} where id=#{recordId}")
-    int updateRecordStatus(String expectTime, int earlyCheckOut, BigDecimal refundPrice, Long userId,long recordId);
+            "refund_amount=#{refundPrice},operator_id=#{userId} where order_id=#{orderId}")
+    int updateRecordStatus(String expectTime, int earlyCheckOut, BigDecimal refundPrice, Long userId, long orderId);
 
     @Update("update hotel_order set pay_time=now() where id=#{orderId}")
-    void updatePayTime(long orderId);
+    int updatePayTime(long orderId);
+
+    @Select("select * from hotel_order where hotel_id=#{hotelId} and status=#{status}")
+    List<HotelOrder> getOrderByHotel(GetOrderRequest getOrderRequest);
 }

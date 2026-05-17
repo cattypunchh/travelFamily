@@ -22,7 +22,7 @@ public class RabbitConfig {
         return QueueBuilder.durable(ORDER_TTL_QUEUE)
                 .deadLetterExchange(ORDER_CANCEL_EXCHANGE)
                 .deadLetterRoutingKey("cancel")
-                .ttl(60*1000)
+                .ttl(15 * 60 * 1000)
                 .build();
     }
 
@@ -37,15 +37,18 @@ public class RabbitConfig {
 
         return BindingBuilder.bind(orderTtlQueue()).to(orderTtlExchange()).with("ttl").noargs();
     }
+
     @Bean
     public Queue orderCancelQueue() {
 
         return QueueBuilder.durable(ORDER_CANCEL_QUEUE).build();
     }
+
     @Bean
     public Exchange orderCancelExchange() {
         return new DirectExchange(ORDER_CANCEL_EXCHANGE);
     }
+
     @Bean
     public Binding orderCancelBinding() {
 

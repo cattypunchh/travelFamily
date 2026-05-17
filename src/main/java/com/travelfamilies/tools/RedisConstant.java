@@ -46,6 +46,6 @@ public final class RedisConstant {
     public static final String HOTEL_ROOM_DYNAMIC = "hotel:room:dynamic:";
     public static final Long HOTEL_ROOM_DYNAMIC_EXPIRES = 1L;
 
-    public static final Long SPOT_VIEWS_USER_EXPIRES = 30 * 60 * 1000L;
+    public static final Long SPOT_VIEWS_USER_EXPIRES = 5 * 1000L;
     public static final Long TOKEN_EXPIRES_TIME = 24 * 3600 * 1000L;
 }

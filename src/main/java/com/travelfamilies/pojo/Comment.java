@@ -12,6 +12,7 @@ import java.util.List;
 @NoArgsConstructor
 public class Comment {
 
+    List<String> images;
     private int id;
     private Long userId;
     private Long targetId;
@@ -21,7 +22,6 @@ public class Comment {
     private Integer parentId;
     private Integer rootId;
     private int status;
-    List<String> images;
     private LocalDateTime createTime;
 
 }

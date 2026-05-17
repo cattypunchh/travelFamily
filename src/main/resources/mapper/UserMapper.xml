@@ -13,4 +13,29 @@
         </foreach>
 
     </select>
+
+
+    <select id="queryUser" resultType="com.travelfamilies.pojo.User">
+        select
+        *
+        from user_detail
+        <where>
+            <choose>
+                <!-- 优先匹配精确查询：如果 key 和 value 都不为空 -->
+                <when test="key != null and value != null">
+                    AND ${key} = #{value}
+                </when>
+
+                <!-- 否则匹配模糊查询：如果 keyword 不为空 -->
+                <otherwise>
+                    <if test="keyword != null and keyword != ''">
+                        AND (
+                        CONCAT(username, nickname, email,phone) LIKE CONCAT('%', #{keyword}, '%')
+                        )
+                    </if>
+                </otherwise>
+            </choose>
+
+        </where>
+    </select>
 </mapper>

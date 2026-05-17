@@ -40,7 +40,8 @@ public class HotelRequest {
     @NotBlank(message = "图片不能为空")
     private List<String> images;
 
-    @NotNull(message = "状态不能为空")
-    private int status;
+    private Integer status = 2;
+
+    private Long adminId;
 
 }

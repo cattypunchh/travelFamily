@@ -1,5 +1,6 @@
 package com.travelfamilies.service;
 
+import com.travelfamilies.request.spotRequest.GetSpotRequest;
 import com.travelfamilies.request.spotRequest.QuerySpotRequest;
 import com.travelfamilies.request.spotRequest.SpotRequest;
 import com.travelfamilies.request.spotRequest.UpdateDetailRequest;
@@ -16,7 +17,9 @@ public interface SpotService {
 
     Result<?> addSpot(SpotRequest spotRequest);
 
-    Result<?> updateSpot(UpdateDetailRequest updateDetailRequest,long id);
+    Result<?> updateSpot(UpdateDetailRequest updateDetailRequest, long id);
 
     Result<?> deleteSpot(Long id);
+
+    Result<?> getAllSpot(GetSpotRequest getSpotRequest);
 }

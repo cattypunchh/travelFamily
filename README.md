@@ -1,82 +1,194 @@
-
-🚀 旅游之家（TravelFamilies）
-
-📌 项目简介
-  旅游之家（TravelHome） 是一个专注于个人及家庭旅游场景的综合服务平台。它旨在通过数字化的方式，帮助用户发现心仪的旅游
-目的地、分享真实的旅游攻略，并提供酒店与门票的预订管理功能 。
-
----
-🚧 开发进度说明：
-目前项目已完成 安全底座（Phase 1），并正处于 核心业务迭代（Phase 2） 中。
-
-[已交付] 用户 (User) 与 管理员 (Admin) 权限体系。
-[已交付] 高性能景点模块 (Spot Module)：集成多级缓存与防刷机制。
-
-[新交付] 工业级通用评论与评分组件 (Universal Comment System)：
-多维度关联：支持跨业务（景点/酒店）评价，采用 target_id 与 target_type 实现逻辑解耦。
-二级嵌套回复：实现了“根评论 + 子评论”的分层展示模型，支持二级独立分页加载，兼顾用户体验与查询性能。
-多媒体评价：集成评论图片管理，支持一键关联多张 OSS 存储的实拍图。
+<p align="center">
+  <h1 align="center">🏖️ 旅游之家 TravelFamilies</h1>
+  <p align="center">个人及家庭旅游综合服务平台 —— 微信小程序 + Web 管理后台</p>
+</p>
 
 ---
 
-🛠 技术栈
-核心框架：Spring Boot 3.x 
-安全鉴权：Spring Security + JWT (JSON Web Token)
-数据存储：MySQL 8 (业务数据) + Redis (缓存、Token 管理、限流) 
-持久层：MyBatis / MyBatis-Plus
-工具链：Lombok, Maven, Docker
+## 📌 项目简介
+
+TravelFamilies 是一个专注于旅游场景的全栈服务平台，提供**景点浏览、酒店预订、评论评分、优惠券**等一站式旅游服务。
+
+- 🛒 **客户端**：微信小程序，支持景点搜索、酒店预订、下单支付、评论晒图
+- 🖥️ **管理端**：Web 后台，支持系统管理员（超级管理）和酒店管理员（商家）双角色
+- ⚡ **高并发**：集成 Redis 缓存、防刷限流、原子评分、异步落库等工业级方案
 
 ---
 
-✨ 核心模块亮点（已完成）
+## 🛠 技术栈
 
-1. 强化的 Redis “黑白名单”安全机制
-为了克服纯 JWT 无状态令牌无法实时注销的缺陷，本项目在 Filter 拦截层实现了双重校验逻辑 ：
-白名单（Token 维持）：Redis 实时存储当前活跃会话，支持多端登录挤下线及手动强制注销。
-黑名单（实时风控）：针对异常账号（status != 1）实现一票否决，确保管理员封禁操作可在毫秒级拦截存量 JWT 的请求。
-
-2. 严格的业务分层与解耦
-物理隔离设计：AdminServiceImpl与UserServiceImpl保持物理独立，确保管理端特有的审计逻辑与用户端业务互不干扰。
-架构避坑规范：严格处理 Java “常量折叠”导致的配置刷新问题，通过规范化的 RedisConstant 维护与编译流程，确保缓存层级结构
-              准确 。
-
-3.景点模块：高并发与数据一致性方案
-   本项目在景点模块的设计中，放弃了简单的 CRUD，引入了工业级的处理逻辑：
-多级缓存与击穿防护：
-针对 Top 10 热门列表，开启 @Cacheable(sync = true)，通过本地锁机制防止缓存失效瞬间的缓存击穿。
-采用 “静态详情缓存 + 动态计数实时提取” 策略，平衡了数据库压力与数据实时性。
-智能防刷机制：
-利用 Redis SETNX 实现 10 分钟用户访问冷却期。通过 SPOT_VIEW_IP:{userId}:{spotId} 复合 Key 设计，精准过滤 F5 恶意刷新，
-确保浏览量数据的真实性。
-异步落库保证性能：
-采用 Write-Back（回写）策略。浏览量实时更新至 Redis，通过 @Scheduled 定时任务每小时批量同步至 MySQL，极大降低了高频写
-操作对数据库 IO 的消耗。
-4.极致的 SQL 性能优化 (Anti-N+1 Strategy)
-在评论展示逻辑中，拒绝在循环内进行数据库/Redis 查询。利用 Java 8 Stream API 的 groupingBy 与 mapping 在内存中实现数据
-高效分拣，确保无论评论数量多少，图片表的查询 IO 始终固定为 1 次。
-5.高并发下的原子性计分方案
-
-Read-Modify-Write 避坑：放弃“查询-计算-存储”的传统更新逻辑，改用 Redis 的 HINCRBY / INCR 原子递增 记录总分与总人数。
-解决数据丢失：彻底解决了多用户同时评论导致的评分相互覆盖问题，确保了平均分统计的绝对准确性。
----
-
-📅 后续模块规划
-项目即将进入交易与住宿核心业务开发：
-
-酒店模块 (Hotel Module)：
-实现酒店搜索、房型管理及实时库存同步。
-分布式事务与支付 (Payment Module)：
-分布式锁应用：在订单预订环节引入 Redisson 分布式锁，防止超卖与重复下单。
-统一支付接入：集成第三方支付 API，处理支付回调、订单状态自动流转及异常补单逻辑。
-全链路压力测试：
-使用 JMeter 对评论区高频读写场景进行压测，优化 MySQL 索引树及 Redis 缓存过期策略。
+| 类别 | 技术 |
+|------|------|
+| 核心框架 | Spring Boot 4.0.5 · Java 17 |
+| 安全鉴权 | Spring Security + JWT (java-jwt 4.4.0) |
+| 数据库 | MySQL 8 |
+| 缓存 | Redis（Token · 缓存 · 计数 · 限流） |
+| 消息队列 | RabbitMQ（死信队列 · 订单超时取消） |
+| ORM | MyBatis + PageHelper 分页 |
+| 对象存储 | 阿里云 OSS |
+| 工具 | Lombok · Hutool · Fastjson2 |
+| 构建 | Maven |
 
 ---
 
-📖 如何运行
-1.环境准备：启动 Redis 与 MySQL 8 实例。
-2.源码编译：执行 mvn clean install（注：修改常量类后必须 clean 以刷新编译缓存）。
-3.配置文件：在 application.yml 中配置数据库连接与 Redis 地址。
-4.启动：运行 TravelFamiliesApplication。
+## 📁 项目结构
+
+```
+src/main/java/com/travelfamilies/
+├── TravelFamiliesApplication.java   # 启动类（@EnableCaching + @EnableScheduling）
+├── config/                          # 配置
+│   ├── SecurityConfig.java          # 权限规则（用户/管理员/酒店管理员）
+│   ├── JwtAuthenticationFilter.java # JWT 过滤器（Redis 黑白名单）
+│   ├── JwtUtils.java                # Token 生成与校验
+│   ├── CorsConfig.java              # 跨域
+│   ├── RabbitConfig.java            # 死信队列（15 分钟订单超时）
+│   └── RedisConfig.java             # Redis 序列化
+├── controller/                      # 控制器（9 个 · 59 个接口）
+├── service/                         # 业务接口 + impl 实现
+├── mapper/                          # MyBatis Mapper + XML
+├── pojo/                            # 实体 & VO
+├── request/                         # 请求 DTO（按模块分包）
+├── response/                        # 响应 DTO · Result 统一返回体
+├── exception/                       # 全局异常处理
+├── task/                            # 定时任务（库存滚动 · 浏览量同步 · 评分同步）
+└── tools/                           # OSS上传 · 天数计算 · 订单取消消费者 · Redis常量
+```
 
 ---
+
+## 👥 角色权限
+
+| 角色 | roleID | 标识 | 端 | 说明 |
+|------|--------|------|----|------|
+| 普通用户 | 1 | ROLE_USER | 微信小程序 | 浏览、预订、评论 |
+| 系统管理员 | 2 | ROLE_ADMIN | Web | 全站管理、审批酒店 |
+| 酒店管理员 | 3 | ROLE_HOTEL | Web | 酒店CRUD、订单管理 |
+
+**安全亮点**：
+- 🔐 JWT + Redis 白名单：支持挤下线与强制注销，克服无状态令牌无法实时失效的缺陷
+- 🚫 Redis 黑名单：封禁账号毫秒级拦截存量 JWT 请求
+- 🔒 BCrypt 密码加密
+
+---
+
+## 🚀 核心亮点
+
+### 景点高并发方案
+
+| 机制 | 实现 |
+|------|------|
+| 缓存击穿防护 | `@Cacheable(sync = true)` 本地锁 |
+| 智能防刷 | Redis SETNX 10 分钟冷却期 `spot:views:user:{userId}:{spotId}` |
+| 异步落库 | Write-Back 策略，Redis 实时计数 + 每小时批量同步 MySQL |
+
+### 原子评分系统
+
+> 放弃"查询-计算-存储"，改用 `HINCRBY` / `INCR` 原子递增，彻底解决高并发下评分覆盖问题。
+
+### 订单超时取消
+
+```
+提交订单 → TTL 队列(15min) → 超时 → 死信队列 → OrderCancelConsumer
+                                                    ├── 更新状态为已取消
+                                                    ├── 回滚房型库存
+                                                    └── 退还优惠券
+```
+
+### 酒店库存滑动窗口
+
+- 每日凌晨 2 点自动生成第 31 天库存，清理过期记录
+- 始终保持 30 天可预订窗口
+- Redis 实时扣减，保证并发安全
+
+### 评论系统
+
+- 🌐 跨业务评价：`targetId` + `targetType` 解耦景点/酒店评论
+- 💬 二级嵌套回复：根评论 + 子评论独立分页
+- 📷 多媒体评价：支持关联多张 OSS 实拍图
+- ⚡ Anti-N+1：Stream groupingBy 内存分拣，图片查询 IO 恒为 1 次
+
+---
+
+## 📡 API 概览
+
+> 统一返回：`{ code: 200, message: "操作成功", data: ... }`  
+> 认证方式：`Authorization: Bearer <token>`
+
+| 模块 | 路径 | 接口数 | 核心功能 |
+|------|------|--------|----------|
+| 用户 | `/user` | 6 | 注册/登录/微信登录/修改资料 |
+| 管理员 | `/admin` | 7 | 管理员注册登录/用户管理 |
+| 酒店 | `/hotel` | 19 | CRUD/房型/搜索/预订/审批/库存 |
+| 订单 | `/order` | 9 | 下单/支付/入住/退房/分类查询 |
+| 景点 | `/spot` | 7 | 热门Top10/搜索/CRUD/防刷 |
+| 评论 | `/comment` | 4 | 发表/查询/回复/状态 |
+| 优惠券 | `/coupon` | 5 | 发放/领取/状态管理 |
+| 图片 | `/image` | 1 | 按类型查询图片 |
+| 上传 | `/upload` | 1 | OSS 文件上传 |
+
+> 完整接口文档见 [help.md](./help.md)
+
+---
+
+## 🏗️ 快速开始
+
+### 环境要求
+
+- JDK 17+
+- Maven 3.8+
+- MySQL 8.0+
+- Redis 6.0+
+- RabbitMQ 3.x
+
+### 配置
+
+修改 `src/main/resources/application.yml`：
+```yaml
+spring:
+  datasource:
+    url: jdbc:mysql://localhost:3306/travel_families?serverTimezone=Asia/Shanghai&useUnicode=true&characterEncoding=utf-8
+    username: root
+    password: your_password
+  data:
+    redis:
+      host: 127.0.0.1
+      port: 6379
+
+aliyun:
+  oss:
+    endpoint: oss-cn-hangzhou.aliyuncs.com
+    accessKeyId: your_key
+    accessKeySecret: your_secret
+    bucketName: your_bucket
+```
+
+### 启动
+
+```bash
+# 编译（修改常量类后必须 clean）
+mvn clean install
+
+# 启动
+mvn spring-boot:run
+
+# 服务运行在 http://localhost:8080
+```
+
+### ⚠️ 注意事项
+
+- 修改 `RedisConstant` 等常量类后务必 `mvn clean` 刷新编译缓存
+- 生产环境将 `CorsConfig` 的 `allowedOriginPatterns("*")` 改为具体域名
+- 修改 `JwtUtils.java` 中的 `SECRET` 为生产密钥
+
+---
+
+## ✅ 项目完成度
+
+- [x] 用户/管理员/酒店管理员三角色权限体系
+- [x] JWT + Redis 黑白名单安全机制
+- [x] 景点模块（缓存/防刷/定时同步）
+- [x] 酒店模块（CRUD/房型/库存滑动窗口）
+- [x] 订单模块（下单/支付/入住/退房/RabbitMQ 超时取消）
+- [x] 评论系统（二级嵌套/图片/原子评分）
+- [x] 优惠券模块
+- [x] 图片上传（阿里云 OSS）

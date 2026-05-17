@@ -6,8 +6,8 @@ import com.travelfamilies.mapper.CommentMapper;
 import com.travelfamilies.mapper.ImagesMapper;
 import com.travelfamilies.mapper.UserMapper;
 import com.travelfamilies.pojo.Comment;
-import com.travelfamilies.pojo.Image;
 import com.travelfamilies.pojo.CommentVO;
+import com.travelfamilies.pojo.Image;
 import com.travelfamilies.request.commentRequest.AddCommentRequest;
 import com.travelfamilies.request.commentRequest.GetCommentRequest;
 import com.travelfamilies.request.commentRequest.GetReplyCommentRequest;
@@ -19,6 +19,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.beans.BeanUtils;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
 import java.util.*;
@@ -35,8 +36,8 @@ public class CommentServiceImpl implements CommentService {
     private final ImagesMapper imagesMapper;
 
     @Override
+    @Transactional(rollbackFor = Exception.class)
     public Result<?> addComment(long userId, AddCommentRequest addCommentRequest) {
-
 
         if (!StringUtils.hasText(addCommentRequest.getContent()))
             return Result.failed("请输入评论内容");
@@ -61,35 +62,48 @@ public class CommentServiceImpl implements CommentService {
 
             addCommentRequest.setRootId(parentComment.getRootId() == 0 ? parentComment.getId() : parentComment.getRootId());
         }
+        int result = commentMapper.addComment(userId, addCommentRequest);
 
-        if (commentMapper.addComment(userId, addCommentRequest) == 1) {
+        if (result < 1) {
 
-            if (addCommentRequest.getRootId() == 0) {
-
-                long targetId = addCommentRequest.getTargetId();
-
-                String scoreKey = addCommentRequest.getTargetType() == 1 ? RedisConstant.COMMENT_SPOT_SCORE : RedisConstant.COMMENT_HOTEL_SCORER;
-                String countKey = addCommentRequest.getTargetType() == 1 ? RedisConstant.COMMENT_SPOT_COUNT : RedisConstant.COMMENT_HOTEL_COUNT;
-
-                int result = imagesMapper.addImages(Long.valueOf(addCommentRequest.getId()), 4, addCommentRequest.getImages());
-                if (result < 1) {
-                    Result.failed("图片上传失败，请重试");
-                }
-                stringRedisTemplate.opsForValue().increment(countKey + targetId);
-                stringRedisTemplate.opsForValue().increment(scoreKey + targetId, addCommentRequest.getStarRating());
-
-            }
-
-            return Result.success(" 评论成功");
+            return Result.failed("评论失败，请重试");
         }
-        return Result.failed("评论失败，请重试");
+
+        if (addCommentRequest.getRootId() == 0) {
+
+            long targetId = addCommentRequest.getTargetId();
+
+            String scoreKey = addCommentRequest.getTargetType() == 1 ? RedisConstant.COMMENT_SPOT_SCORE : RedisConstant.COMMENT_HOTEL_SCORER;
+            String countKey = addCommentRequest.getTargetType() == 1 ? RedisConstant.COMMENT_SPOT_COUNT : RedisConstant.COMMENT_HOTEL_COUNT;
+
+            stringRedisTemplate.opsForValue().increment(countKey + targetId);
+            stringRedisTemplate.opsForValue().increment(scoreKey + targetId, addCommentRequest.getStarRating().doubleValue());
+
+            List<String> images = addCommentRequest.getImages();
+
+            if (images != null && !images.isEmpty()) {
+
+                int resultAdd = imagesMapper.addImages(Long.valueOf(addCommentRequest.getId()), 4, images);
+                if (resultAdd < 1) {
+
+                    throw new RuntimeException("图片上传失败，触发事务回滚");
+
+                }
+            }
+        }
+
+        return Result.success(" 评论成功");
+
+
     }
 
     @Override
     public Result<?> getComment(GetCommentRequest getCommentRequest) {
 
-        PageHelper.startPage(getCommentRequest.requestPage(), getCommentRequest.requestNum());
+        PageHelper.startPage(getCommentRequest.getRequestPage(), getCommentRequest.getRequestNum());
+
         List<Comment> commentList = commentMapper.getComment(getCommentRequest);
+
         if (commentList == null || commentList.isEmpty()) {
 
             return Result.success("暂无评论");
@@ -102,9 +116,9 @@ public class CommentServiceImpl implements CommentService {
                 .sorted(Comparator.comparing(CommentVO::getCreateTime).reversed())
                 .toList();
 
-        List<Integer> commentIds =rootComments.stream().map(CommentVO::getId).toList();
+        List<Integer> commentIds = rootComments.stream().map(CommentVO::getId).toList();
 
-        List<Image> images = imagesMapper.getImages(commentIds,4);
+        List<Image> images = imagesMapper.getImages(commentIds, 4);
 
         /*ai提供*/
 //        Map<Integer, List<String>> imagesGroup = images.stream().
@@ -112,21 +126,22 @@ public class CommentServiceImpl implements CommentService {
 //                        Collectors.mapping(Image::getImage_url, Collectors.toList())));
 //
 //
-        Map<Integer,List<String>> imagesGroup=new HashMap<>();
 
-        for(Image image:images){
+        Map<Long, List<String>> imagesGroup = new HashMap<>();
 
-            int comment_id= Math.toIntExact(image.getTargetId());
-            if(!imagesGroup.containsKey(comment_id)){
+        for (Image image : images) {
 
-                imagesGroup.put(comment_id,new ArrayList<>());
+            long comment_id = image.getTargetId();
+            if (!imagesGroup.containsKey(comment_id)) {
+
+                imagesGroup.put(comment_id, new ArrayList<>());
             }
             imagesGroup.get(comment_id).add(image.getImageUrl());
         }
+
         List<CommentVO> repliedComments = commentVOList.stream()
                 .filter(f -> f.getRootId() != 0)
                 .toList();
-
 
         for (CommentVO rootComment : rootComments) {
 
@@ -135,7 +150,8 @@ public class CommentServiceImpl implements CommentService {
                     .sorted(Comparator.comparing(CommentVO::getCreateTime).reversed())
                     .collect(Collectors.toList());
 
-            rootComment.setImages(imagesGroup.get(rootComment.getId()));
+            List<String> strings = imagesGroup.get(Long.parseLong(String.valueOf(rootComment.getId())));
+            rootComment.setImages(strings);
             rootComment.setChildren(childComments);
         }
         PageInfo<CommentVO> pageInfo = new PageInfo<>(rootComments);
@@ -157,19 +173,33 @@ public class CommentServiceImpl implements CommentService {
         return Result.success(pageInfo);
     }
 
+    @Override
+    public Result<?> getCommentStatus(long orderId, long userId) {
+
+
+        Integer result = commentMapper.getCommentStatus(orderId, userId);
+
+        return result != null ?
+                Result.success(result)
+                : Result.success("还未对该订单做出评论");
+    }
+
     private List<CommentVO> getCommentVo(List<Comment> commentList) {
 
+        /*得到评论该景点or酒店的user*/
         Set<Long> userIds = commentList.stream().map(Comment::getUserId).collect(Collectors.toSet());
         if (userIds.isEmpty()) {
             return Collections.emptyList();
         }
         List<GetUserResponse> users = userMapper.getUser(new ArrayList<>(userIds));
-        List<CommentVO> commentVOList = new ArrayList<>();
 
         Map<Long, GetUserResponse> userMap = new HashMap<>();
+
         for (GetUserResponse user : users) {
             userMap.put(user.getId(), user);
         }
+
+        List<CommentVO> commentVOList = new ArrayList<>();
         for (Comment comment : commentList) {
             CommentVO commentVO = new CommentVO();
             BeanUtils.copyProperties(comment, commentVO);

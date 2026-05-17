@@ -1,14 +1,18 @@
 package com.travelfamilies.response;
 
+import lombok.Getter;
+
 public enum CodeMessage {
 
-    SUCCESS(200,"操作成功"),
-    FAILED(404,"操作失败"),
-    AUTH_TAILED(401,"未授权，请先登录"),
-    ACCESS_FAILED(403,"权限不足");
+    SUCCESS(200, "操作成功"),
+    FAILED(404, "操作失败"),
+    AUTH_TAILED(401, "未授权，请先登录"),
+    ACCESS_FAILED(403, "权限不足");
 
 
+    @Getter
     private final int code;
+    @Getter
     private final String message;
 
     CodeMessage(int code, String message) {
@@ -16,13 +20,6 @@ public enum CodeMessage {
         this.message = message;
     }
 
-    public int getCode() {
-        return code;
-    }
-
-    public String getMessage() {
-        return message;
-    }
 
 
 }

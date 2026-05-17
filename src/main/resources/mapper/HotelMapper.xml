@@ -141,6 +141,44 @@
             </where>
     </select>
 
+    <delete id="deleteRoomType" parameterType="java.util.List">
+        DELETE FROM hotel_room_type
+        WHERE id IN
+        <foreach collection="roomIds" item="id" open="(" separator="," close=")">
+            #{id}
+        </foreach>
+    </delete>
 
 
+    <select id="getHotelWOrder" resultType="com.travelfamilies.response.GetHotelResponse">
+        SELECT
+        id,
+        name,
+        city,
+        district,
+        business_area,
+        base_price,
+        main_pic
+        FROM hotel
+        <where>
+            <choose>
+                <!-- 当集合不为空且长度大于 0 时，才拼接 IN 和 ORDER BY -->
+                <when test="hotelIds != null and hotelIds.size() > 0">
+                    id IN
+                    <foreach collection="hotelIds" item="id" open="(" separator="," close=")">
+                        #{id}
+                    </foreach>
+                    ORDER BY FIELD(id,
+                    <foreach collection="hotelIds" item="id" separator=",">
+                        #{id}
+                    </foreach>
+                    )
+                </when>
+                <!-- 兜底处理：如果集合为空，让 SQL 返回空结果，防止报错 -->
+                <otherwise>
+                    1 = 0
+                </otherwise>
+            </choose>
+        </where>
+    </select>
 </mapper>

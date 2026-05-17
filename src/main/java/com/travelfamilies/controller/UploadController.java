@@ -11,10 +11,18 @@ import java.io.IOException;
 @RestController
 @RequestMapping("/upload")
 @RequiredArgsConstructor
+@CrossOrigin
 public class UploadController {
 
     private final AliOSSUtils aliOSSUtils;
 
+    /** 
+     * 上传文件到阿里云 OSS 
+     * 
+     * @param file 上传的文件 
+     * @return 文件访问 URL 
+     * @throws IOException IO 异常 
+     */ 
     @PostMapping
     public Result<?> upload(@RequestParam MultipartFile file) throws IOException {
 

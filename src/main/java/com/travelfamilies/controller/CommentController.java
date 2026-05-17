@@ -17,6 +17,13 @@ public class CommentController {
 
     private final CommentService commentService;
 
+    /** 
+     * 添加评论 
+     * 
+     * @param addCommentRequest 添加评论请求对象 
+     * @param httpServletRequest HTTP 请求对象 
+     * @return 操作结果 
+     */ 
     @PostMapping("/add")
     public Result<?> addComment(@RequestBody AddCommentRequest addCommentRequest, HttpServletRequest httpServletRequest) {
 
@@ -25,16 +32,42 @@ public class CommentController {
     }
 
 
-    @GetMapping("/get")
+    /** 
+     * 查询评论列表 
+     * 
+     * @param getCommentRequest 查询评论请求对象 
+     * @return 评论列表 
+     */ 
+    @PostMapping("/get")
     public Result<?> getComment(@RequestBody GetCommentRequest getCommentRequest) {
 
         return commentService.getComment(getCommentRequest);
 
     }
 
-    @GetMapping("/getReply")
+    /** 
+     * 查询回复评论 
+     * 
+     * @param getReplyCommentRequest 查询回复评论请求对象 
+     * @return 回复评论列表 
+     */ 
+    @PostMapping("/getReply")
     public Result<?> getReplyComment(@RequestBody GetReplyCommentRequest getReplyCommentRequest) {
 
         return commentService.getReplyComment(getReplyCommentRequest);
+    }
+
+    /** 
+     * 查询订单评论状态 0 or 1
+     * 
+     * @param orderId 订单主键 ID 
+     * @param httpServletRequest HTTP 请求对象 
+     * @return 评论状态 
+     */ 
+    @GetMapping("/getCommentStatus")
+    public Result<?> getCommentStatus(@RequestParam String orderId, HttpServletRequest httpServletRequest) {
+
+        long userId = (long) httpServletRequest.getAttribute("userID");
+        return commentService.getCommentStatus(Long.parseLong(orderId), userId);
     }
 }
