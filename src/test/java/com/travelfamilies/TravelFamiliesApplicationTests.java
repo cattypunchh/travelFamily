@@ -47,14 +47,14 @@ class TravelFamiliesApplicationTests {
     @Autowired
     private RestTemplate restTemplate;
 
-    private final String AMAP_KEY = "3702909104b2c6f22ae18732e975fd63";
+    private final String AMAP_KEY = "your_amap_key";
 
     // OSS 配置
-    private static final String OSS_ENDPOINT = "oss-cn-hangzhou.aliyuncs.com";
-    private static final String OSS_ACCESS_KEY = "LTAI5t7z2kAJh1CmUw1PDMko";
-    private static final String OSS_SECRET_KEY = "1RQLHiXAPpVipQlfdWJ7QeDbMdvY7y";
-    private static final String OSS_BUCKET = "travel-families-img";
-    private static final String OSS_URL_PREFIX = "https://travel-families-img.oss-cn-hangzhou.aliyuncs.com/";
+    private static final String OSS_ENDPOINT = "your_oss_endpoint";
+    private static final String OSS_ACCESS_KEY = "your_access_key";
+    private static final String OSS_SECRET_KEY = "your_secret_key";
+    private static final String OSS_BUCKET = "your_bucket";
+    private static final String OSS_URL_PREFIX = "your_url_prefix";
 
     private OSS ossClient;
 
