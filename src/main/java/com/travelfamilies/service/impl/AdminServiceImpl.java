@@ -117,8 +117,9 @@ public class AdminServiceImpl implements AdminService {
         if (userMapper.setNewPassword(password, id) > 0) {
 
             String token = jwtUtils.generateToken(id, userMapper.getUserRole(id), userMapper.getUserName(id));
-            stringRedisTemplate.opsForValue().set(RedisConstant.ADMIN_TOKEN + id, token,
-                    RedisConstant.TOKEN_EXPIRES_TIME, TimeUnit.MILLISECONDS);
+            int roleId= jwtUtils.getUserRoleId(token);
+            String  key = roleId==2? RedisConstant.ADMIN_TOKEN+id:RedisConstant.HOTEL_ADMIN_TOKEN+id;
+            stringRedisTemplate.opsForValue().set(key, token, RedisConstant.TOKEN_EXPIRES_TIME, TimeUnit.MILLISECONDS);
 
             return Result.success(token);
         }

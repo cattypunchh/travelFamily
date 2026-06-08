@@ -1,6 +1,7 @@
 package com.travelfamilies.config;
 
 import com.auth0.jwt.interfaces.DecodedJWT;
+import com.travelfamilies.response.CodeMessage;
 import com.travelfamilies.response.HandleResponse;
 import com.travelfamilies.tools.RedisConstant;
 import jakarta.servlet.FilterChain;
@@ -18,14 +19,18 @@ import org.springframework.web.filter.OncePerRequestFilter;
 import java.io.IOException;
 import java.util.Collections;
 import java.util.List;
+import lombok.extern.slf4j.Slf4j;
 
+@Slf4j
 @Component
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     private final StringRedisTemplate stringRedisTemplate;
+    private final JwtUtils jwtUtils;
 
-    public JwtAuthenticationFilter(StringRedisTemplate stringRedisTemplate) {
+    public JwtAuthenticationFilter(StringRedisTemplate stringRedisTemplate, JwtUtils jwtUtils) {
         this.stringRedisTemplate = stringRedisTemplate;
+        this.jwtUtils = jwtUtils;
     }
 
     @Override
@@ -43,7 +48,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         token = token.substring(7);
         try {
 
-            DecodedJWT decodedJWT = JwtUtils.verifyToken(token);
+            DecodedJWT decodedJWT = jwtUtils.verifyToken(token);
             long userId = decodedJWT.getClaim("userID").asLong();
             int roleId = decodedJWT.getClaim("roleID").asInt();
 
@@ -52,36 +57,31 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             String blackKey;
             if (roleId == 1) {
                 key = RedisConstant.USER_TOKEN + userId;
-                blackKey = RedisConstant.USER_BLACK_LIST;
+                blackKey = RedisConstant.USER_BLACK_LIST + userId;
                 roleName = "ROLE_USER";
             } else if (roleId == 2) {
                 key = RedisConstant.ADMIN_TOKEN + userId;
-                blackKey = RedisConstant.ADMIN_BLACK_LIST;
+                blackKey = RedisConstant.ADMIN_BLACK_LIST + userId;
                 roleName = "ROLE_ADMIN";
             } else {
                 key = RedisConstant.HOTEL_ADMIN_TOKEN + userId;
-                blackKey = RedisConstant.HOTEL_ADMIN_BLACK_LIST;
+                blackKey = RedisConstant.HOTEL_ADMIN_BLACK_LIST + userId;
                 roleName = "ROLE_HOTEL";
             }
-            String redisToken = stringRedisTemplate.opsForValue().get(key);
 
+            // 1. 先检查黑名单
             Boolean blackStatus = stringRedisTemplate.hasKey(blackKey);
-            if (blackStatus) {
-                String message = "该账号异常,禁止登录";
-                HandleResponse.createResponse(403, message, response);
+            if (Boolean.TRUE.equals(blackStatus)) {
+                HandleResponse.createResponse(CodeMessage.FORBIDDEN.getCode(), CodeMessage.FORBIDDEN.getMessage(), response);
                 return;
             }
 
-
-            if(redisToken!=null){
-
-                if (!redisToken.equals(token)) {
-
-                    SecurityContextHolder.clearContext();
-
-                    HandleResponse.createResponse(401, "登陆已过期或在别处登录，请重新登录", response);
-                    return;
-                }
+            // 2. 再校验 token 是否匹配（防重复登录/过期）
+            String redisToken = stringRedisTemplate.opsForValue().get(key);
+            if (redisToken != null && !redisToken.equals(token)) {
+                SecurityContextHolder.clearContext();
+                HandleResponse.createResponse(401, "登陆已过期或在别处登录，请重新登录", response);
+                return;
             }
 
 
@@ -101,8 +101,10 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
 
         } catch (Exception e) {
-
+            log.warn("JWT 认证失败: {}", e.getMessage());
             SecurityContextHolder.clearContext();
+            HandleResponse.createResponse(401, "认证失败，请重新登录", response);
+            return;
         }
 
         filterChain.doFilter(request, response);

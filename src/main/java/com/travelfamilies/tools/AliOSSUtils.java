@@ -8,7 +8,9 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.time.LocalDate;
 import java.util.Objects;
+import java.util.Random;
 import java.util.UUID;
 
 @Component
@@ -29,7 +31,10 @@ public class AliOSSUtils {
 
         // 避免文件覆盖，使用UUID生成唯一文件名
         String originalFilename = file.getOriginalFilename();
-        String fileName = UUID.randomUUID() + Objects.requireNonNull(originalFilename).substring(originalFilename.lastIndexOf("."));
+        if(originalFilename==null||originalFilename.isEmpty()){
+            originalFilename="default"+ LocalDate.now()+".png";
+        }
+        String fileName = UUID.randomUUID() + originalFilename.substring(originalFilename.lastIndexOf("."));
 
         // 上传文件到OSS
         OSS ossClient = new OSSClientBuilder().build(endpoint, accessKeyId, accessKeySecret);

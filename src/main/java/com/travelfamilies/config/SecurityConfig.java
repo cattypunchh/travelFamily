@@ -2,6 +2,7 @@ package com.travelfamilies.config;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
@@ -49,20 +50,40 @@ public class SecurityConfig {
 
                 // 3. 请求拦截规则
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/user/login", "/user", "/admin", "/admin/login", "/error", "/upload", "/admin/resetPassword", "/user/wx-login", "/user/wx-profile").permitAll()
-                        .requestMatchers("/order/checkIn", "/order/checkOut", "/order/getOrderByGuest",
-                                "/hotel/add", "/hotel/addRoom", "/hotel/modify", "/hotel/updateRoom",
-                                "/hotel/updateDayMess", "/coupon/add", "/hotel/getOwner").hasRole("HOTEL")
-                        .requestMatchers("/spot/addSpot", "/spot/update", "/spot/delete", "/coupon/add", "/hotel/list", "/hotel/all").hasRole("ADMIN")
+                        .requestMatchers("/user/login", "/user", "/admin", "/admin/login", "/error",
+                                "/admin/resetPassword", "/user/wx-login", "/user/wx-profile").permitAll()
+                        // 酒店管理员专属
+                        .requestMatchers(HttpMethod.POST, "/hotel").hasRole("HOTEL")
+                        .requestMatchers(HttpMethod.POST, "/hotel/room").hasRole("HOTEL")
+                        .requestMatchers(HttpMethod.PUT, "/hotel/{id}").hasRole("HOTEL")
+                        .requestMatchers(HttpMethod.PUT, "/hotel/room").hasRole("HOTEL")
+                        .requestMatchers(HttpMethod.PUT, "/hotel/dayMess").hasRole("HOTEL")
+                        .requestMatchers(HttpMethod.POST, "/hotel/getOwner").hasRole("HOTEL")
+                        .requestMatchers(HttpMethod.PUT, "/coupon/{couponId}").hasRole("HOTEL")
+                        .requestMatchers("/order/checkIn", "/order/checkOut", "/order/getOrderByGuest").hasRole("HOTEL")
+                        .requestMatchers(HttpMethod.DELETE, "/hotel/{id}").hasRole("HOTEL")
+                        .requestMatchers(HttpMethod.DELETE, "/hotel/room/{id}").hasRole("HOTEL")
+                        // 系统管理员专属
+                        .requestMatchers(HttpMethod.PUT, "/admin/status").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.POST, "/admin/all").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.POST, "/admin/query").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.POST, "/spot").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.PUT, "/spot/{id}").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.DELETE, "/spot/{id}").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.POST, "/hotel/list").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.POST, "/hotel/all").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.PUT, "/hotel/status/{id}").hasRole("ADMIN")
+                        // 管理员+酒店管理员
                         .requestMatchers("/hotel/status/**").hasAnyRole("ADMIN", "HOTEL")
+                        .requestMatchers(HttpMethod.POST, "/coupon").hasAnyRole("ADMIN", "HOTEL")
+                        .requestMatchers(HttpMethod.PUT, "/coupon/{couponId}").hasAnyRole("ADMIN", "HOTEL")
 
                         .anyRequest().authenticated()
                 )
                 .exceptionHandling(exception -> exception
-                        .authenticationEntryPoint(authenticationEntryPoint)
-                        .accessDeniedHandler(accessDeniedHandler)
+                .authenticationEntryPoint(authenticationEntryPoint)
+                .accessDeniedHandler(accessDeniedHandler)
                 );
-
         http.addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
         return http.build();
     }

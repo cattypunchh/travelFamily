@@ -21,7 +21,7 @@ public class OrderCancelConsumer {
     private final CalculateDays calculateDays;
 
     @RabbitListener(queues = RabbitConfig.ORDER_CANCEL_QUEUE)
-    @Transactional
+    @Transactional(rollbackFor = Exception.class)
     public void updateOrderStatus(String orderId) throws BusinessException {
 
         long id = Long.parseLong(orderId);

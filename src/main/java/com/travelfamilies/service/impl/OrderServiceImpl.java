@@ -2,14 +2,15 @@ package com.travelfamilies.service.impl;
 
 import com.github.pagehelper.PageHelper;
 import com.github.pagehelper.PageInfo;
-import com.travelfamilies.config.RabbitConfig;
 import com.travelfamilies.exception.BusinessException;
 import com.travelfamilies.mapper.CouponMapper;
 import com.travelfamilies.mapper.HotelMapper;
+import com.travelfamilies.mapper.MqMessageMapper;
 import com.travelfamilies.mapper.OrderMapper;
 import com.travelfamilies.mapper.UserMapper;
 import com.travelfamilies.pojo.CheckInRecord;
 import com.travelfamilies.pojo.HotelOrder;
+import com.travelfamilies.pojo.MqMessage;
 import com.travelfamilies.pojo.LocateRoomInfo;
 import com.travelfamilies.pojo.UserCouponVO;
 import com.travelfamilies.request.hotelRequest.LocateRoomRequest;
@@ -23,7 +24,6 @@ import com.travelfamilies.response.Result;
 import com.travelfamilies.service.OrderService;
 import com.travelfamilies.tools.CalculateDays;
 import lombok.RequiredArgsConstructor;
-import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.beans.BeanUtils;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -45,7 +45,7 @@ public class OrderServiceImpl implements OrderService {
     private final HotelMapper hotelMapper;
     private final CouponMapper couponMapper;
     private final OrderMapper orderMapper;
-    private final RabbitTemplate rabbitTemplate;
+    private final MqMessageMapper mqMessageMapper;
     private final UserMapper userMapper;
     private final CalculateDays calculateDays;
 
@@ -187,7 +187,11 @@ public class OrderServiceImpl implements OrderService {
                 }
             } else {
 
-                rabbitTemplate.convertAndSend(RabbitConfig.ORDER_TTL_EXCHANGE, "ttl", String.valueOf(orderId));
+                long id=cn.hutool.core.util.IdUtil.getSnowflakeNextId();
+                MqMessage message = new MqMessage(id,orderId,
+                        com.travelfamilies.config.RabbitConfig.ORDER_TTL_EXCHANGE,"ttl",String.valueOf(orderId),
+                        0,0,5,null,null);
+                mqMessageMapper.insert(message);
                 return Result.success("请在15分钟之内支付该订单，超时预约取消");
             }
         } else {
@@ -214,7 +218,9 @@ public class OrderServiceImpl implements OrderService {
                 }
                 Map<String, Object> calculate = calculateDays.calculate(hotelOrder);
 
-                if (( (int) calculate.get("result")) < ( (long) calculate.get("days"))) {
+                int rollbackResult = calculate.get("result") == null ? 0 : ((Number) calculate.get("result")).intValue();
+                long totalDays = calculate.get("days") == null ? 0 : ((Number) calculate.get("days")).longValue();
+                if (rollbackResult < totalDays) {
 
                     throw new RuntimeException("回滚库存失败");
                 }
@@ -313,16 +319,22 @@ public class OrderServiceImpl implements OrderService {
     }
 
     @Override
+    @Transactional(rollbackFor = Exception.class)
     public Result<?> checkOut(long orderId, Long userId) {
 
         LocalDate now = LocalDate.parse(LocalDate.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd")));
 
         CheckInRecord record = orderMapper.getRecord(orderId);
+        HotelOrder order = orderMapper.getOrder(record.getOrderId());
+
+        // 先检查状态，再执行修改操作
+        if (order.getStatus() == 4) {
+            return Result.failed("已退房 不可重复退房");
+        }
 
         LocalDate expectTime = LocalDate.parse(record.getExpectCheckOut());
 
         String actualCheckIn = record.getActualCheckIn();
-        HotelOrder order = orderMapper.getOrder(record.getOrderId());
         BigDecimal refundPrice = new BigDecimal("0.00");
         if (now.isBefore(expectTime)) {
 
@@ -348,18 +360,11 @@ public class OrderServiceImpl implements OrderService {
         int result = hotelMapper.rollBackStock(order.getRoomId(), actualCheckIn,
                 String.valueOf(record.getExpectCheckOut()));
 
-        if (order.getStatus() == 4) {
-
-            return Result.failed("已退房 不可重复退房");
-        }
-
         if (resultRecord > 0) {
-
             orderMapper.updateStatus(order.getId(), 4);
             return result > 0 ? Result.success("退房成功，库存回滚成功") : Result.failed("退房成功 但回滚库存失败，请注意");
         } else {
-
-            return result > 0 ? Result.success("退房失败但回滚库存成功") : Result.failed("退房失败,回滚库存失败，请注意");
+            throw new RuntimeException("退房失败，入住记录更新失败");
         }
     }
 

@@ -29,37 +29,49 @@ public class CouponServiceImpl implements CouponService {
     public Result<?> getCoupon(long couponId, long userId) {
 
         String getKey = RedisConstant.COUPON_GET_DETAIL + couponId + ":" + userId;
-        String decrKey = RedisConstant.COUPON_STOCK + couponId;
+        String stockKey = RedisConstant.COUPON_STOCK + couponId;
+        String limitKey = RedisConstant.COUPON_LIMIT + couponId;
 
-        int everLimit = Integer.parseInt(Objects.requireNonNull(stringRedisTemplate.opsForValue().get(RedisConstant.COUPON_LIMIT + couponId)));
+        // 1. 检查每人限制
+        String limitStr = stringRedisTemplate.opsForValue().get(limitKey);
+        int everLimit = limitStr != null ? Integer.parseInt(limitStr) : Integer.MAX_VALUE;
 
-        int getCount = Math.toIntExact(stringRedisTemplate.opsForValue().increment(getKey));
-        if (getCount > everLimit) {
+        // 2. 原子递增领取次数，检查是否超限
+        Long getCount = stringRedisTemplate.opsForValue().increment(getKey);
+        if (getCount != null && getCount > everLimit) {
             stringRedisTemplate.opsForValue().decrement(getKey);
             return Result.failed("每人限制领取" + everLimit + "张，你已达上限");
         }
 
-        if (Integer.parseInt(Objects.requireNonNull(stringRedisTemplate.opsForValue().get(decrKey))) <= 0) {
-
+        // 3. 原子递减库存（先扣 Redis，避免超卖）
+        Long remainStock = stringRedisTemplate.opsForValue().decrement(stockKey);
+        if (remainStock == null || remainStock < 0) {
+            // 库存不足，回滚 Redis
+            stringRedisTemplate.opsForValue().increment(stockKey);
+            stringRedisTemplate.opsForValue().decrement(getKey);
             return Result.failed("该优惠券已被抢光");
         }
 
+        // 4. 扣减数据库库存
         int resultDecr = couponMapper.decrStock(couponId);
-        if (resultDecr > 0) {
-
-            stringRedisTemplate.opsForValue().decrement(decrKey);
-            int result = couponMapper.addCouponOrder(couponId, userId);
-            if (result > 0) {
-                return Result.success();
-            } else {
-                stringRedisTemplate.opsForValue().decrement(getKey);
-
-                throw new RuntimeException("领取优惠券失败");
-            }
-        } else {
+        if (resultDecr <= 0) {
+            // DB 扣减失败，回滚 Redis
+            stringRedisTemplate.opsForValue().increment(stockKey);
+            stringRedisTemplate.opsForValue().decrement(getKey);
             return Result.failed("该优惠券已被抢光");
         }
 
+        // 5. 创建领取记录
+        int result = couponMapper.addCouponOrder(couponId, userId);
+        if (result <= 0) {
+            // 领取失败，回滚 Redis 和 DB
+            stringRedisTemplate.opsForValue().increment(stockKey);
+            stringRedisTemplate.opsForValue().decrement(getKey);
+            couponMapper.incrementStock(couponId);
+            throw new RuntimeException("领取优惠券失败");
+        }
+
+        return Result.success();
     }
 
     @Override

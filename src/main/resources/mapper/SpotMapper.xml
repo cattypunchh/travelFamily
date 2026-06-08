@@ -12,7 +12,13 @@
         <where>
             <choose>
                 <when test="key != null and value != null">
-                    AND ${key} = #{value}
+                    <choose>
+                        <when test="key == 'name'">AND name = #{value}</when>
+                        <when test="key == 'city'">AND city = #{value}</when>
+                        <when test="key == 'type'">AND type = #{value}</when>
+                        <when test="key == 'status'">AND status = #{value}</when>
+                        <otherwise>AND 1 = 0</otherwise>
+                    </choose>
                 </when>
 
                 <otherwise>
@@ -26,9 +32,6 @@
 
             AND status = 1
 
-        <choose>
-
-        </choose>
         </where>
 
     </select>

@@ -25,6 +25,9 @@ public interface CouponMapper {
     @Update("update coupons set stock=stock-1 where coupon_id=#{couponId} and stock>0")
     int decrStock(long couponId);
 
+    @Update("update coupons set stock=stock+1 where coupon_id=#{couponId}")
+    int incrementStock(long couponId);
+
     @Select("select * from coupons where  scope_type=2 and scope_id=#{hotelId} and status=1")
     List<Coupon> getCouponByHotelId(Long hotelId);
 

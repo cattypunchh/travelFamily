@@ -88,10 +88,21 @@ public class SpotServiceImpl implements SpotService {
         List<Long> spotId = new ArrayList<>();
         spotId.add(id);
         Spot spot = spotMapper.getSpotDetail(id);
+        if(spot == null||spotId.isEmpty()){
+
+            return Result.success(null);
+        }
         SpotVO spotVO = new SpotVO();
         BeanUtils.copyProperties(spot, spotVO);
         List<Image> images = imagesMapper.getImages(spotId, 3);
-        spot.setViews(Integer.valueOf(Objects.requireNonNull(stringRedisTemplate.opsForValue().get(RedisConstant.SPOT_VIEWS + id))));
+
+        String views = stringRedisTemplate.opsForValue().get(RedisConstant.SPOT_VIEWS + id);
+
+        if(views == null|| views.isEmpty()){
+
+            views= String.valueOf(spotMapper.getSpotView(id));
+        }
+        spot.setViews(Integer.valueOf(views));
         spotVO.setImageUrls(images);
         return Result.success(spotVO);
     }

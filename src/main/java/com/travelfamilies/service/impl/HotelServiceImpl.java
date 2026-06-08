@@ -349,14 +349,13 @@ public class HotelServiceImpl implements HotelService {
     @Override
     public Result<?> getHotelOwner(GetDataRequest getDataRequest, long adminId) {
 
-        PageHelper.startPage(getDataRequest.requestPage(), getDataRequest.requestNum());
+
         List<Long> hotelIds = hotelMapper.getHotelByAdmin(adminId);
 
         if (hotelIds == null || hotelIds.isEmpty()) {
 
             return Result.failed("您还没有申请酒店入驻");
         }
-
 
         List<Hotel> hotels = new ArrayList<>();
         for (Long hotelId : hotelIds) {
@@ -365,11 +364,11 @@ public class HotelServiceImpl implements HotelService {
             hotels.add(hotel);
         }
 
-        PageInfo<Hotel> pageInfo = new PageInfo<>(hotels);
-        return Result.success(pageInfo);
+        return Result.success(hotels);
     }
 
     @Override
+    @Transactional(rollbackFor = Exception.class)
     public Result<?> deleteHotel(long hotelId) {
 
         /*删除酒店照片 库存照片 库存 房型*/

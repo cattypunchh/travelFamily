@@ -43,4 +43,7 @@ public interface SpotMapper {
 
     @Select("select * from spot")
     List<Spot> getAllSpot();
+
+    @Select("select views from spot where id=#{id}")
+    int getSpotView(Long id);
 }

@@ -26,7 +26,14 @@ public class SpotTask {
         for (String key : keys) {
 
             long spotId = Long.parseLong(key.substring(RedisConstant.SPOT_VIEWS.length()));
-            int views = Integer.parseInt(Objects.requireNonNull(stringRedisTemplate.opsForValue().get(key)));
+
+            String value = stringRedisTemplate.opsForValue().get(key);
+
+            if(value==null||value.isEmpty()){
+                continue;
+            }
+
+            int views = Integer.parseInt(value);
 
             spotMapper.updateViews(spotId, views);
             log.info("景点浏览量数据库更新成功");

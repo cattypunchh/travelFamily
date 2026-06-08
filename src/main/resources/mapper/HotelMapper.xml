@@ -68,7 +68,14 @@
         <where>
             <choose>
                 <when test="key != null and key != '' and value != null">
-                    AND ${key} = #{value}
+                    <choose>
+                        <when test="key == 'name'">AND name = #{value}</when>
+                        <when test="key == 'city'">AND city = #{value}</when>
+                        <when test="key == 'district'">AND district = #{value}</when>
+                        <when test="key == 'business_area'">AND business_area = #{value}</when>
+                        <when test="key == 'status'">AND status = #{value}</when>
+                        <otherwise>AND 1 = 0</otherwise>
+                    </choose>
                 </when>
 
                 <otherwise>

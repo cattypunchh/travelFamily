@@ -21,9 +21,17 @@
         from user_detail
         <where>
             <choose>
-                <!-- 优先匹配精确查询：如果 key 和 value 都不为空 -->
+                <!-- 优先匹配精确查询：白名单校验列名，防止 SQL 注入 -->
                 <when test="key != null and value != null">
-                    AND ${key} = #{value}
+                    <choose>
+                        <when test="key == 'username'">AND username = #{value}</when>
+                        <when test="key == 'nickname'">AND nickname = #{value}</when>
+                        <when test="key == 'email'">AND email = #{value}</when>
+                        <when test="key == 'phone'">AND phone = #{value}</when>
+                        <when test="key == 'role'">AND role = #{value}</when>
+                        <when test="key == 'status'">AND status = #{value}</when>
+                        <otherwise>AND 1 = 0</otherwise>
+                    </choose>
                 </when>
 
                 <!-- 否则匹配模糊查询：如果 keyword 不为空 -->

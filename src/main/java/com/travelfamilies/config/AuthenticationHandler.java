@@ -1,5 +1,6 @@
 package com.travelfamilies.config;
 
+import com.travelfamilies.response.CodeMessage;
 import com.travelfamilies.response.HandleResponse;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -16,6 +17,6 @@ public class AuthenticationHandler implements AuthenticationEntryPoint {
     public void commence(@NonNull HttpServletRequest request, @NonNull HttpServletResponse response,
             @NonNull AuthenticationException authException) throws IOException{
 
-        HandleResponse.createResponse(401, "请先登录", response);
+        HandleResponse.createResponse(CodeMessage.AUTH_FAILED.getCode(), CodeMessage.AUTH_FAILED.getMessage(), response);
     }
 }

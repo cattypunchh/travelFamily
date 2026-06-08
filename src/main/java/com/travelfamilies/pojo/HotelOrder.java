@@ -7,7 +7,6 @@ import tools.jackson.databind.annotation.JsonSerialize;
 import tools.jackson.databind.ser.std.ToStringSerializer;
 
 import java.math.BigDecimal;
-import java.time.LocalDateTime;
 
 
 @Data
@@ -44,7 +43,7 @@ public class HotelOrder {
 
     private String createTime;
 
-    private LocalDateTime payTime;
+    private String payTime;
 
     private String hotelName;
 

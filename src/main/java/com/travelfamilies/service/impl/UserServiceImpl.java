@@ -34,6 +34,13 @@ public class UserServiceImpl implements UserService {
     private final JwtUtils jwtUtils;
     private final StringRedisTemplate stringRedisTemplate;
     private final ImagesMapper imagesMapper;
+    private final RestTemplate restTemplate;
+
+    @org.springframework.beans.factory.annotation.Value("${wx.appid}")
+    private String wxAppId;
+
+    @org.springframework.beans.factory.annotation.Value("${wx.secret}")
+    private String wxSecret;
 
     @Override
     public void registerUser(@Valid RegisterRequest registerRequest) throws BusinessException {
@@ -124,7 +131,7 @@ public class UserServiceImpl implements UserService {
 
         String openid = getOpenIdFromWechat(code);
 
-        if (openid == null) {
+        if (openid == null||openid.isEmpty()) {
 
             return Result.failed("微信登录失败");
         }
@@ -167,15 +174,21 @@ public class UserServiceImpl implements UserService {
     private String getOpenIdFromWechat(String code) {
 
         String url = "https://api.weixin.qq.com/sns/jscode2session" +
-                "?appid=" + "${WX_APPID:your_wx_appid_here}" +
-                "&secret=" + "${WX_SECRET:your_wx_secret_here}" +
+                "?appid=" + wxAppId +
+                "&secret=" + wxSecret +
                 "&js_code=" + code +
                 "&grant_type=authorization_code";
 
-        RestTemplate restTemplate = new RestTemplate();
         String response = restTemplate.getForObject(url, String.class);
+
+        if(response == null||response.isEmpty()){
+            return null;
+        }
         JSONObject json = JSON.parseObject(response);
 
-        return Objects.requireNonNull(json).getString("openid");
+        if(json==null||json.isEmpty()){
+            return null;
+        }
+        return json.getString("openid");
     }
 }
